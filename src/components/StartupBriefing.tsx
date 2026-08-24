@@ -1,25 +1,39 @@
 import { useEffect, useRef } from 'react';
 import { useJarvisStore } from '../lib/store';
-import { useVoice } from '../lib/useVoice';
 
 // ══════════════════════════════════════════════════════
 // STARTUP BRIEFING — JARVIS greets you on launch
+// Uses raw SpeechSynthesis API (no hooks to avoid React conflicts)
 // ══════════════════════════════════════════════════════
+
+function speakText(text: string) {
+  if (!('speechSynthesis' in window)) return;
+  window.speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = 'en-US';
+  u.rate = 1.05;
+  u.pitch = 0.95;
+  const voices = window.speechSynthesis.getVoices();
+  const voice = voices.find(v => v.lang === 'en-US' && v.name.includes('Google'))
+    || voices.find(v => v.lang.startsWith('en'))
+    || voices.find(v => v.lang.startsWith('hi'));
+  if (voice) u.voice = voice;
+  window.speechSynthesis.speak(u);
+}
 
 export default function StartupBriefing() {
   const hasSpoken = useRef(false);
-  const { speak, ttsSupported } = useVoice();
 
   useEffect(() => {
-    if (hasSpoken || !ttsSupported) return;
+    // Wait for voices to load
+    if ('speechSynthesis' in window && window.speechSynthesis.getVoices().length === 0) {
+      window.speechSynthesis.onvoiceschanged = () => tryBriefing();
+    }
 
-    // Wait for data to load, then speak
     const tryBriefing = () => {
       if (hasSpoken.current) return;
 
       const { weather, indianIndices, stockMarketStatus } = useJarvisStore.getState();
-
-      // Need at least weather data to give a briefing
       if (!weather) return;
 
       hasSpoken.current = true;
@@ -29,46 +43,34 @@ export default function StartupBriefing() {
       if (hour >= 5 && hour < 12) greeting = 'Good morning';
       else if (hour >= 12 && hour < 17) greeting = 'Good afternoon';
 
-      let briefing = `${greeting}, sir. I am JARVIS, your personal assistant. `;
+      let text = `${greeting}, sir. I am JARVIS. `;
+      text += `In Chennai it is ${weather.temp} degrees and ${weather.condition}. Feels like ${weather.feelsLike} degrees. Humidity ${weather.humidity} percent, wind ${weather.windSpeed} kilometers per hour. `;
 
-      // Weather
-      briefing += `In Chennai, it is currently ${weather.temp} degrees and ${weather.condition}. Feels like ${weather.feelsLike} degrees. Humidity is ${weather.humidity} percent, wind ${weather.windSpeed} kilometers per hour. `;
-
-      // AQI
       if (weather.aqi > 0) {
-        briefing += `The air quality index is ${weather.aqi}, rated ${weather.aqiLevel}. `;
+        text += `Air quality index is ${weather.aqi}, rated ${weather.aqiLevel}. `;
       }
 
-      // Stocks
       if (indianIndices.length > 0) {
         const nifty = indianIndices.find(i => i.symbol === '^NSEI');
         const sensex = indianIndices.find(i => i.symbol === '^BSESN');
-        briefing += `Markets are currently ${stockMarketStatus}. `;
-        if (nifty) {
-          briefing += `Nifty is at ${nifty.price.toLocaleString('en-IN')}, ${nifty.changePercent >= 0 ? 'up' : 'down'} ${Math.abs(nifty.changePercent).toFixed(2)} percent. `;
-        }
-        if (sensex) {
-          briefing += `Sensex at ${sensex.price.toLocaleString('en-IN')}, ${sensex.changePercent >= 0 ? 'up' : 'down'} ${Math.abs(sensex.changePercent).toFixed(2)} percent. `;
-        }
+        text += `Markets are ${stockMarketStatus}. `;
+        if (nifty) text += `Nifty ${nifty.changePercent >= 0 ? 'up' : 'down'} ${Math.abs(nifty.changePercent).toFixed(2)} percent at ${nifty.price.toLocaleString('en-IN')}. `;
+        if (sensex) text += `Sensex ${sensex.changePercent >= 0 ? 'up' : 'down'} ${Math.abs(sensex.changePercent).toFixed(2)} percent at ${sensex.price.toLocaleString('en-IN')}. `;
       }
 
-      briefing += `How may I assist you today?`;
-
-      speak(briefing, { rate: 1.05, pitch: 0.95 });
+      text += `How may I assist you today?`;
+      speakText(text);
     };
 
-    // Poll every 2 seconds until data is ready (max 15 seconds)
     let attempts = 0;
     const interval = setInterval(() => {
       attempts++;
       tryBriefing();
-      if (hasSpoken.current || attempts >= 8) {
-        clearInterval(interval);
-      }
+      if (hasSpoken.current || attempts >= 8) clearInterval(interval);
     }, 2000);
 
     return () => clearInterval(interval);
-  }, [speak, ttsSupported]);
+  }, []);
 
-  return null; // No UI — this is a voice-only component
+  return null;
 }

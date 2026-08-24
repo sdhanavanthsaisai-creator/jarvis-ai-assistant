@@ -16,7 +16,7 @@ interface VoiceButtonProps {
 
 export default function VoiceButton({ size = 'md', showWaveform = true, onTranscript }: VoiceButtonProps) {
   const { isListening, isSpeaking, isProcessing } = useJarvisStore();
-  const { toggleListening, speechSupported } = useVoice({ onTranscript });
+  const { toggleListening, speechSupported, voiceError } = useVoice({ onTranscript });
 
   const sizeClasses = {
     sm: 'w-10 h-10',
@@ -95,9 +95,24 @@ export default function VoiceButton({ size = 'md', showWaveform = true, onTransc
         </AnimatePresence>
       </motion.button>
 
+      {/* ── Error Message ── */}
+      <AnimatePresence>
+        {voiceError && (
+          <motion.div
+            initial={{ opacity: 0, y: 5 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 5 }}
+            className="absolute -bottom-8 whitespace-nowrap glass-card border border-red-500/30 px-2 py-1 rounded text-center"
+            style={{ maxWidth: 200, whiteSpace: 'normal' }}
+          >
+            <span className="text-[0.5rem] text-red-400">{voiceError}</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* ── Status Label ── */}
       <AnimatePresence>
-        {(isListening || isProcessing) && size !== 'sm' && (
+        {(isListening || isProcessing) && !voiceError && size !== 'sm' && (
           <motion.div
             initial={{ opacity: 0, y: 5 }}
             animate={{ opacity: 1, y: 0 }}
