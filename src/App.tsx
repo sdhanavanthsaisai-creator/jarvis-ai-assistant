@@ -1,6 +1,7 @@
-import React from 'react';
-import { HashRouter, Routes, Route, NavLink, useLocation } from 'react-router-dom';
+import React, { useCallback } from 'react';
+import { HashRouter, Routes, Route, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import StartupBriefing from './components/StartupBriefing';
+import FloatingMic from './components/FloatingMic';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard,
@@ -207,6 +208,9 @@ export default function App() {
           <Sidebar />
           <ContentArea />
         </div>
+
+        {/* ── Floating Arc Reactor Mic ── */}
+        <FloatingMic />
 
         {/* ── Startup Voice Briefing ── */}
         <StartupBriefing />
