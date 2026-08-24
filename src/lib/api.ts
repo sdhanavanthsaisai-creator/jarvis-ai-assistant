@@ -146,6 +146,34 @@ export async function fetchStockWatchlist(): Promise<void> {
   setStockMarketStatus(status);
 }
 
+const WMO_CODES: Record<number, { desc: string; emoji: string }> = {
+  0: { desc: 'Clear Sky', emoji: '☀️' }, 1: { desc: 'Mostly Clear', emoji: '🌤️' },
+  2: { desc: 'Partly Cloudy', emoji: '⛅' }, 3: { desc: 'Overcast', emoji: '☁️' },
+  45: { desc: 'Foggy', emoji: '🌫️' }, 48: { desc: 'Rime Fog', emoji: '🌫️' },
+  51: { desc: 'Light Drizzle', emoji: '🌦️' }, 53: { desc: 'Drizzle', emoji: '🌦️' },
+  55: { desc: 'Heavy Drizzle', emoji: '🌧️' }, 61: { desc: 'Light Rain', emoji: '🌦️' },
+  63: { desc: 'Rain', emoji: '🌧️' }, 65: { desc: 'Heavy Rain', emoji: '🌧️' },
+  71: { desc: 'Light Snow', emoji: '❄️' }, 73: { desc: 'Snow', emoji: '❄️' },
+  75: { desc: 'Heavy Snow', emoji: '❄️' }, 77: { desc: 'Snow Grains', emoji: '❄️' },
+  80: { desc: 'Light Showers', emoji: '🌦️' }, 81: { desc: 'Showers', emoji: '🌧️' },
+  82: { desc: 'Heavy Showers', emoji: '🌧️' }, 85: { desc: 'Snow Showers', emoji: '❄️' },
+  86: { desc: 'Heavy Snow Showers', emoji: '❄️' },
+  95: { desc: 'Thunderstorm', emoji: '⛈️' }, 96: { desc: 'T-storm with Hail', emoji: '⛈️' },
+  99: { desc: 'Heavy T-storm', emoji: '⛈️' },
+};
+
+const getUVLevel = (v: number) => v <= 2 ? 'Low' : v <= 5 ? 'Moderate' : v <= 7 ? 'High' : v <= 10 ? 'Very High' : 'Extreme';
+const windDir = (deg: number) => {
+  const d = ['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'];
+  return d[Math.round(deg / 22.5) % 16];
+};
+const getAQI = (v: number) => v <= 20 ? { level: 'Good', color: '#00e676', advice: 'Air quality is satisfactory.' }
+  : v <= 40 ? { level: 'Fair', color: '#8bc34a', advice: 'Acceptable quality.' }
+  : v <= 60 ? { level: 'Moderate', color: '#ffeb3b', advice: 'Moderate quality.' }
+  : v <= 80 ? { level: 'Poor', color: '#ff9800', advice: 'Unhealthy for sensitive groups.' }
+  : v <= 100 ? { level: 'Very Poor', color: '#f44336', advice: 'Health alert.' }
+  : { level: 'Hazardous', color: '#880e4f', advice: 'Stay indoors.' };
+
 export async function fetchChennaiWeather(): Promise<void> {
   const { setWeather, setWeatherLoading, setWeatherError } = useJarvisStore.getState();
 
@@ -157,86 +185,59 @@ export async function fetchChennaiWeather(): Promise<void> {
     } catch { /* fall through */ }
   }
 
-  // Direct OpenWeatherMap fetch — requires API key in env
-  const apiKey = import.meta.env.VITE_OPENWEATHER_API_KEY || '';
-  if (!apiKey) {
-    setWeatherError('Set VITE_OPENWEATHER_API_KEY in .env');
-    setWeatherLoading(false);
-    return;
-  }
-
   setWeatherLoading(true);
   try {
-    const base = '/api/owm/data/2.5';
-    const [currentRes, forecastRes, uvRes] = await Promise.all([
-      fetch(`${base}/weather?q=Chennai,IN&units=metric&appid=${apiKey}`),
-      fetch(`${base}/forecast?q=Chennai,IN&units=metric&appid=${apiKey}`),
-      fetch(`${base}/uvi?lat=13.0827&lon=80.2707&appid=${apiKey}`),
+    const LAT = 13.0827, LON = 80.2707;
+    const [weatherRes, aqiRes] = await Promise.all([
+      fetch(`https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}` +
+        `&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,wind_direction_10m,visibility,uv_index` +
+        `&hourly=temperature_2m,weather_code,precipitation_probability` +
+        `&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,sunrise,sunset` +
+        `&timezone=Asia/Kolkata&forecast_days=6`),
+      fetch(`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${LAT}&longitude=${LON}&current=european_aqi`),
     ]);
 
-    if (!currentRes.ok) throw new Error(`OWM ${currentRes.status}`);
-    const current = await currentRes.json();
-    const forecast = forecastRes.ok ? await forecastRes.json() : null;
-    const uvData = uvRes.ok ? await uvRes.json() : { value: 0 };
+    if (!weatherRes.ok) throw new Error(`Open-Meteo ${weatherRes.status}`);
+    const w = await weatherRes.json();
+    const aqiData = aqiRes.ok ? await aqiRes.json() : null;
+    const euAqi = aqiData?.current?.european_aqi ?? 0;
+    const aqi = getAQI(euAqi);
 
-    const EMOJI: Record<string, string> = {
-      '01d':'☀️','01n':'🌙','02d':'🌤️','02n':'☁️','03d':'⛅','03n':'⛅',
-      '04d':'☁️','04n':'☁️','09d':'🌧️','09n':'🌧️','10d':'🌦️','10n':'🌧️',
-      '11d':'⛈️','11n':'⛈️','13d':'❄️','13n':'❄️','50d':'🌫️','50n':'🌫️',
-    };
-    const getEmoji = (c: string) => EMOJI[c] || '🌡️';
-    const getUVLevel = (v: number) => v <= 2 ? 'Low' : v <= 5 ? 'Moderate' : v <= 7 ? 'High' : v <= 10 ? 'Very High' : 'Extreme';
-    const getAQI = (v: number) => v <= 50 ? { level: 'Good', color: '#00e676', advice: 'Air quality is satisfactory.' }
-      : v <= 100 ? { level: 'Moderate', color: '#ffeb3b', advice: 'Acceptable quality.' }
-      : v <= 200 ? { level: 'Poor', color: '#ff9800', advice: 'Unhealthy for sensitive groups.' }
-      : v <= 300 ? { level: 'Very Poor', color: '#f44336', advice: 'Health alert.' }
-      : { level: 'Hazardous', color: '#880e4f', advice: 'Stay indoors.' };
-    const windDir = (deg: number) => {
-      const d = ['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'];
-      return d[Math.round(deg / 22.5) % 16];
-    };
+    const c = w.current;
+    const code = c.weather_code ?? 0;
+    const wmo = WMO_CODES[code] || { desc: 'Unknown', emoji: '🌡️' };
 
-    // Hourly (next 12)
-    const hourly = (forecast?.list || []).slice(0, 12).map((h: any) => ({
-      time: h.dt_txt, temp: Math.round(h.main.temp),
-      condition: h.weather[0]?.description || '', icon: h.weather[0]?.icon || '01d',
-      rainChance: Math.round((h.pop || 0) * 100),
+    const hourly = (w.hourly?.time || []).slice(0, 12).map((t: string, i: number) => ({
+      time: t, temp: Math.round(w.hourly.temperature_2m[i]),
+      condition: WMO_CODES[w.hourly.weather_code[i]]?.desc || '',
+      icon: WMO_CODES[w.hourly.weather_code[i]]?.emoji || '🌡️',
+      rainChance: Math.round(w.hourly.precipitation_probability[i] || 0),
     }));
 
-    // Daily (next 5)
-    const dailyMap = new Map<string, any>();
-    for (const item of forecast?.list || []) {
-      const date = item.dt_txt.split(' ')[0];
-      if (!dailyMap.has(date)) {
-        dailyMap.set(date, { high: item.main.temp_max, low: item.main.temp_min, condition: item.weather[0]?.description, icon: item.weather[0]?.icon, rainChance: Math.round((item.pop || 0) * 100) });
-      } else {
-        const e = dailyMap.get(date);
-        e.high = Math.max(e.high, item.main.temp_max);
-        e.low = Math.min(e.low, item.main.temp_min);
-      }
-    }
     const dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-    const daily = Array.from(dailyMap.entries()).slice(0, 5).map(([ds, d]) => ({
-      date: dayNames[new Date(ds).getDay()], high: Math.round(d.high), low: Math.round(d.low),
-      condition: d.condition, icon: d.icon, rainChance: d.rainChance,
+    const daily = (w.daily?.time || []).slice(0, 5).map((ds: string, i: number) => ({
+      date: dayNames[new Date(ds + 'T00:00').getDay()],
+      high: Math.round(w.daily.temperature_2m_max[i]),
+      low: Math.round(w.daily.temperature_2m_min[i]),
+      condition: WMO_CODES[w.daily.weather_code[i]]?.desc || '',
+      icon: WMO_CODES[w.daily.weather_code[i]]?.emoji || '🌡️',
+      rainChance: Math.round(w.daily.precipitation_probability_max[i] || 0),
     }));
-
-    const aqiInfo = getAQI(0); // WAQI needs separate key, default to unknown
 
     const weatherData: WeatherData = {
-      temp: Math.round(current.main.temp),
-      feelsLike: Math.round(current.main.feels_like),
-      humidity: current.main.humidity,
-      windSpeed: Math.round(current.wind.speed * 3.6),
-      windDirection: windDir(current.wind.deg || 0),
-      visibility: Math.round((current.visibility || 10000) / 1000),
-      condition: current.weather[0]?.description || 'Unknown',
-      conditionEmoji: getEmoji(current.weather[0]?.icon || '01d'),
-      uvIndex: Math.round(uvData.value || 0),
-      uvLevel: getUVLevel(uvData.value || 0),
-      aqi: 0, aqiLevel: 'Add WAQI token', aqiColor: '#888', aqiAdvice: '',
-      sunrise: new Date(current.sys.sunrise * 1000).toISOString(),
-      sunset: new Date(current.sys.sunset * 1000).toISOString(),
+      temp: Math.round(c.temperature_2m),
+      feelsLike: Math.round(c.apparent_temperature),
+      humidity: c.relative_humidity_2m,
+      windSpeed: Math.round(c.wind_speed_10m),
+      windDirection: windDir(c.wind_direction_10m || 0),
+      visibility: Math.round((c.visibility || 10000) / 1000),
+      condition: wmo.desc,
+      conditionEmoji: wmo.emoji,
+      uvIndex: Math.round(c.uv_index || 0),
+      uvLevel: getUVLevel(c.uv_index || 0),
+      aqi: euAqi, aqiLevel: aqi.level, aqiColor: aqi.color, aqiAdvice: aqi.advice,
+      sunrise: w.daily?.sunrise?.[0] || '',
+      sunset: w.daily?.sunset?.[0] || '',
       hourlyForecast: hourly,
       dailyForecast: daily,
       timestamp: Date.now(),
