@@ -12,6 +12,7 @@ import {
   CheckSquare,
   Settings,
   Cloud,
+  Workflow,
   Power,
   Minus,
   Square,
@@ -26,6 +27,7 @@ const Files = React.lazy(() => import('./pages/Files'));
 const Habits = React.lazy(() => import('./pages/Habits'));
 const Weather = React.lazy(() => import('./pages/Weather'));
 const SettingsPage = React.lazy(() => import('./pages/Settings'));
+const WorkflowsPage = React.lazy(() => import('./pages/Workflows'));
 
 // ══════════════════════════════════════════════════════
 // NAVIGATION CONFIG
@@ -39,6 +41,7 @@ const navItems = [
   { path: '/weather', label: 'Weather', icon: Cloud },
   { path: '/files', label: 'Files', icon: FolderOpen },
   { path: '/habits', label: 'Habits', icon: CheckSquare },
+  { path: '/workflows', label: 'Workflows', icon: Workflow },
   { path: '/settings', label: 'Settings', icon: Settings },
 ];
 
@@ -165,6 +168,7 @@ function ContentArea() {
                 <Route path="/weather" element={<Weather />} />
                 <Route path="/files" element={<Files />} />
                 <Route path="/habits" element={<Habits />} />
+                <Route path="/workflows" element={<WorkflowsPage />} />
                 <Route path="/settings" element={<SettingsPage />} />
               </Routes>
             </React.Suspense>

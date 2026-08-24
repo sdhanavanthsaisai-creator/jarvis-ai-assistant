@@ -353,6 +353,20 @@ and much more — just ask!`;
     return "That's a great question, sir. Could you be more specific? I can help with programming, web development, business, AI, and many other topics.";
   }
 
+  // ── n8n Workflows ──
+  if (/workflow|n8n|automation|automate|trigger|zap|make\.com|integromat/.test(lower)) {
+    if (/list|show|what.*workflow|which.*workflow/.test(lower)) {
+      return "I have 16 bundled workflows ready to import into n8n, sir:\n\n📦 **CRM**: HubSpot Onboarding, HubSpot Automation\n🔥 **Lead Gen**: Facebook Ads, Jotform, Typeform\n📧 **Email**: Mailchimp, ConvertKit, Gmail+Calendar\n🛒 **E-Commerce**: Shopify+Twitter\n📊 **SEO**: Google Analytics Report\n✅ **PM**: ClickUp, Asana Webhooks\n🌐 **Website**: Calendly+Notion, WordPress, Google Sheets\n📱 **Social**: Facebook Updates\n\nGo to the **Workflows** page to import and manage them.";
+    }
+    if (/import|install/.test(lower)) {
+      return "To import workflows, go to the **Workflows** page in the sidebar. You'll see all 16 bundled workflows organized by category. Click **Import** on any workflow to add it to your n8n instance. You'll need to configure your n8n URL and API key first.";
+    }
+    if (/trigger|run|execute|start/.test(lower)) {
+      return "To trigger a workflow, go to the **Workflows** page → **Installed** tab. Click the **Trigger** button on any active workflow. You can also configure n8n webhooks to trigger workflows automatically from website forms, emails, or other events.";
+    }
+    return "n8n workflows let you automate tasks between apps. I have 16 pre-built workflows for your business. Go to the **Workflows** page to import, configure, and trigger them. What would you like to automate?";
+  }
+
   // ── What is questions (knowledge base) ──
   for (const [key, value] of Object.entries(KNOWLEDGE)) {
     if (lower.includes(key) || lower === key) return value;
@@ -377,6 +391,7 @@ I can help you with:
 • **Math** — "What's 245 * 38?"
 • **Conversions** — "Convert 100 USD to INR"
 • **Knowledge** — "What is API?" / "Explain machine learning"
+• **Workflows** — "List my workflows" / "Show n8n automations"
 • **Fun** — "Tell me a joke" / "Give me a quote"
 
 For full AI-powered responses, connect Ollama in Settings.`;
