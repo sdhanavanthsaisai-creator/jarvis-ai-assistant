@@ -1,7 +1,8 @@
-import React, { useState, useCallback } from 'react';
+import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Mic, MicOff } from 'lucide-react';
 import { useJarvisStore } from '../lib/store';
+import { useVoice } from '../lib/useVoice';
 
 // ══════════════════════════════════════════════════════
 // VOICE BUTTON — Arc Reactor Mic Interface
@@ -10,11 +11,12 @@ import { useJarvisStore } from '../lib/store';
 interface VoiceButtonProps {
   size?: 'sm' | 'md' | 'lg';
   showWaveform?: boolean;
+  onTranscript?: (text: string) => void;
 }
 
-export default function VoiceButton({ size = 'md', showWaveform = true }: VoiceButtonProps) {
-  const { isListening, isSpeaking, isProcessing, setListening } = useJarvisStore();
-  const [isPressed, setIsPressed] = useState(false);
+export default function VoiceButton({ size = 'md', showWaveform = true, onTranscript }: VoiceButtonProps) {
+  const { isListening, isSpeaking, isProcessing } = useJarvisStore();
+  const { toggleListening, speechSupported } = useVoice({ onTranscript });
 
   const sizeClasses = {
     sm: 'w-10 h-10',
@@ -22,28 +24,11 @@ export default function VoiceButton({ size = 'md', showWaveform = true }: VoiceB
     lg: 'w-20 h-20',
   };
 
-  const iconSizes = {
-    sm: 16,
-    md: 24,
-    lg: 32,
-  };
-
-  const handleClick = useCallback(() => {
-    setIsPressed(true);
-    setTimeout(() => setIsPressed(false), 200);
-
-    // Toggle listening state
-    setListening(!isListening);
-
-    // Emit to electron if available
-    if (window.electronAPI) {
-      // Voice toggle would be handled via IPC
-    }
-  }, [isListening, setListening]);
+  const iconSizes = { sm: 16, md: 24, lg: 32 };
 
   return (
     <div className="relative flex items-center justify-center">
-      {/* ── Waveform Bars (when listening) ── */}
+      {/* ── Waveform Bars (when listening/speaking) ── */}
       <AnimatePresence>
         {(isListening || isSpeaking) && showWaveform && (
           <motion.div
@@ -73,16 +58,16 @@ export default function VoiceButton({ size = 'md', showWaveform = true }: VoiceB
       <motion.button
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
-        onClick={handleClick}
+        onClick={toggleListening}
+        disabled={!speechSupported}
         className={`
           relative ${sizeClasses[size]} rounded-full flex items-center justify-center
           transition-all duration-300 cursor-pointer
           ${isListening ? 'arc-reactor listening' : isProcessing ? 'arc-reactor processing' : 'arc-reactor'}
-          ${isPressed ? 'scale-95' : ''}
+          ${!speechSupported ? 'opacity-30 cursor-not-allowed' : ''}
         `}
         aria-label={isListening ? 'Stop listening' : 'Start listening'}
       >
-        {/* ── Icon ── */}
         {isListening ? (
           <MicOff size={iconSizes[size]} className="text-jarvis-cyan relative z-10" />
         ) : (

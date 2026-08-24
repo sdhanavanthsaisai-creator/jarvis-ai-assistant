@@ -1,5 +1,6 @@
 import React from 'react';
 import { HashRouter, Routes, Route, NavLink, useLocation } from 'react-router-dom';
+import StartupBriefing from './components/StartupBriefing';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard,
@@ -206,6 +207,9 @@ export default function App() {
           <Sidebar />
           <ContentArea />
         </div>
+
+        {/* ── Startup Voice Briefing ── */}
+        <StartupBriefing />
 
         {/* ── Scan-line Overlays ── */}
         <div className="scan-line-overlay" />

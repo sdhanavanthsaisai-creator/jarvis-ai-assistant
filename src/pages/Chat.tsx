@@ -1,18 +1,21 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Sparkles, User, Bot, Loader2 } from 'lucide-react';
+import { Send, Sparkles, User, Bot, Loader2, Volume2, VolumeX } from 'lucide-react';
 import { useJarvisStore, ChatMessage } from '../lib/store';
 import VoiceButton from '../components/VoiceButton';
+import { useVoice } from '../lib/useVoice';
 
 // ══════════════════════════════════════════════════════
-// CHAT PAGE — FULL-SCREEN CONVERSATION
+// CHAT PAGE — FULL-SCREEN CONVERSATION WITH VOICE
 // ══════════════════════════════════════════════════════
 
 export default function Chat() {
-  const { messages, addMessage, updateLastAssistantMessage, isProcessing, setProcessing } = useJarvisStore();
+  const { messages, addMessage, updateLastAssistantMessage, isProcessing, setProcessing, isSpeaking } = useJarvisStore();
   const [input, setInput] = useState('');
+  const [autoSpeak, setAutoSpeak] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const { speak, stopSpeaking, ttsSupported } = useVoice();
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -24,22 +27,32 @@ export default function Chat() {
     inputRef.current?.focus();
   }, []);
 
-  const sendMessage = async () => {
-    const text = input.trim();
-    if (!text || isProcessing) return;
+  // Auto-speak assistant responses
+  useEffect(() => {
+    if (!autoSpeak || !ttsSupported || messages.length === 0) return;
+    const last = messages[messages.length - 1];
+    if (last.role === 'assistant' && !last.isStreaming && last.content) {
+      speak(last.content);
+    }
+  }, [messages, autoSpeak, speak, ttsSupported]);
 
-    // Add user message
+  const sendMessage = useCallback((text: string) => {
+    if (!text.trim() || isProcessing) return;
+
     const userMsg: ChatMessage = {
       id: `user-${Date.now()}`,
       role: 'user',
-      content: text,
+      content: text.trim(),
       timestamp: Date.now(),
     };
     addMessage(userMsg);
     setInput('');
     setProcessing(true);
 
-    // Add placeholder for assistant response
+    // Stop any ongoing speech
+    stopSpeaking();
+
+    // Add placeholder for assistant
     const assistantMsg: ChatMessage = {
       id: `assistant-${Date.now()}`,
       role: 'assistant',
@@ -49,7 +62,7 @@ export default function Chat() {
     };
     addMessage(assistantMsg);
 
-    // Try streaming via Electron API
+    // Try streaming via Electron
     if (window.electronAPI) {
       window.electronAPI.ai.stream(
         text,
@@ -63,20 +76,53 @@ export default function Chat() {
         }
       );
     } else {
-      // Fallback for browser dev (no Electron)
+      // Fallback — instant smart response for browser dev
       setTimeout(() => {
-        updateLastAssistantMessage(
-          `At your service, sir. I received your message: "${text}". To enable full AI responses, please run this app through Electron with Ollama connected.`
-        );
+        const lower = text.toLowerCase();
+        let response = '';
+
+        if (lower.includes('weather') || lower.includes('temperature')) {
+          const w = useJarvisStore.getState().weather;
+          if (w) {
+            response = `Currently in Chennai it's ${w.temp}°C and ${w.condition}, sir. Feels like ${w.feelsLike}°C. Humidity is at ${w.humidity}%, wind ${w.windSpeed} km/h from the ${w.windDirection}. The air quality index is ${w.aqi}, rated ${w.aqiLevel}.`;
+          } else {
+            response = "I don't have the weather data loaded yet, sir. Let me fetch that for you.";
+          }
+        } else if (lower.includes('stock') || lower.includes('nifty') || lower.includes('sensex') || lower.includes('market')) {
+          const indices = useJarvisStore.getState().indianIndices;
+          if (indices.length > 0) {
+            const nifty = indices.find(i => i.symbol === '^NSEI');
+            const sensex = indices.find(i => i.symbol === '^BSESN');
+            response = `Here's the market update, sir. ${nifty ? `Nifty 50 at ${nifty.price.toLocaleString('en-IN')}, ${nifty.changePercent >= 0 ? 'up' : 'down'} ${Math.abs(nifty.changePercent)}%` : 'Nifty data unavailable'}. ${sensex ? `Sensex at ${sensex.price.toLocaleString('en-IN')}, ${sensex.changePercent >= 0 ? 'up' : 'down'} ${Math.abs(sensex.changePercent)}%` : 'Sensex data unavailable'}. Market is currently ${useJarvisStore.getState().stockMarketStatus}.`;
+          } else {
+            response = "Market data isn't loaded yet, sir. The data should appear shortly.";
+          }
+        } else if (lower.includes('hello') || lower.includes('hi ') || lower.includes('hey')) {
+          response = "Good to see you, sir. How may I assist you today?";
+        } else if (lower.includes('who are you') || lower.includes('what are you')) {
+          response = "I am JARVIS, Just A Rather Very Intelligent System. Your personal AI assistant running locally on your machine. I can help with stocks, weather, file management, and general queries.";
+        } else if (lower.includes('time')) {
+          response = `The current time is ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}, sir.`;
+        } else if (lower.includes('date')) {
+          response = `Today is ${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}, sir.`;
+        } else {
+          response = `At your service, sir. I received your message: "${text}". To enable full AI responses, connect Ollama in Settings. Meanwhile, I can help with stocks, weather, and quick commands.`;
+        }
+
+        updateLastAssistantMessage(response);
         setProcessing(false);
-      }, 1500);
+      }, 500);
     }
-  };
+  }, [isProcessing, addMessage, updateLastAssistantMessage, setProcessing, stopSpeaking, speak]);
+
+  const handleVoiceTranscript = useCallback((transcript: string) => {
+    sendMessage(transcript);
+  }, [sendMessage]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      sendMessage();
+      sendMessage(input);
     }
   };
 
@@ -88,7 +134,23 @@ export default function Chat() {
           <div className="w-2 h-2 rounded-full bg-jarvis-cyan shadow-[0_0_8px_rgba(0,212,255,0.5)]" />
           <h1 className="font-hud text-sm tracking-[0.2em] text-jarvis-cyan uppercase">JARVIS Online</h1>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
+          {ttsSupported && (
+            <button
+              onClick={() => setAutoSpeak(!autoSpeak)}
+              className="flex items-center gap-1.5 px-2 py-1 rounded text-xs font-mono transition-colors hover:bg-white/5"
+              title={autoSpeak ? 'Auto-speak ON' : 'Auto-speak OFF'}
+            >
+              {autoSpeak ? (
+                <Volume2 size={14} className="text-jarvis-gold" />
+              ) : (
+                <VolumeX size={14} className="text-jarvis-text-dim" />
+              )}
+              <span className={`${autoSpeak ? 'text-jarvis-gold' : 'text-jarvis-text-dim'}`}>
+                VOICE {autoSpeak ? 'ON' : 'OFF'}
+              </span>
+            </button>
+          )}
           <span className="font-mono text-xs text-jarvis-text-dim">MODEL: LLAMA 3.2</span>
           <Sparkles size={14} className="text-jarvis-gold animate-glow-breathe" />
         </div>
@@ -104,6 +166,7 @@ export default function Chat() {
               </div>
               <h2 className="font-hud text-lg tracking-[0.15em] text-jarvis-cyan/60 uppercase mb-2">J.A.R.V.I.S</h2>
               <p className="text-jarvis-text-dim text-sm">How may I assist you today, sir?</p>
+              <p className="text-jarvis-text-dim/40 text-xs mt-2">Click the mic or type a command</p>
             </div>
           </div>
         )}
@@ -117,14 +180,12 @@ export default function Chat() {
               transition={{ duration: 0.2 }}
               className={`flex gap-3 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
             >
-              {/* ── Assistant Avatar ── */}
               {msg.role === 'assistant' && (
                 <div className="w-8 h-8 rounded-full bg-jarvis-cyan/10 border border-jarvis-cyan/30 flex items-center justify-center flex-shrink-0 mt-1">
                   <Bot size={16} className="text-jarvis-cyan" />
                 </div>
               )}
 
-              {/* ── Message Bubble ── */}
               <div
                 className={`max-w-[70%] px-4 py-3 rounded-xl ${
                   msg.role === 'user'
@@ -145,7 +206,6 @@ export default function Chat() {
                 </p>
               </div>
 
-              {/* ── User Avatar ── */}
               {msg.role === 'user' && (
                 <div className="w-8 h-8 rounded-full bg-jarvis-gold/10 border border-jarvis-gold/30 flex items-center justify-center flex-shrink-0 mt-1">
                   <User size={16} className="text-jarvis-gold" />
@@ -160,7 +220,7 @@ export default function Chat() {
       {/* ── Input Bar ── */}
       <div className="px-6 py-4 border-t border-jarvis-border">
         <div className="flex items-center gap-3">
-          <VoiceButton size="sm" />
+          <VoiceButton size="sm" onTranscript={handleVoiceTranscript} />
           <div className="flex-1 relative">
             <input
               ref={inputRef}
@@ -174,7 +234,7 @@ export default function Chat() {
             />
           </div>
           <button
-            onClick={sendMessage}
+            onClick={() => sendMessage(input)}
             disabled={!input.trim() || isProcessing}
             className="btn-hud disabled:opacity-30 disabled:cursor-not-allowed"
           >
