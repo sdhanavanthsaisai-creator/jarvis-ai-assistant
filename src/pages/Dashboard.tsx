@@ -12,7 +12,7 @@ import {
   ArrowRight,
 } from 'lucide-react';
 import { useJarvisStore } from '../lib/store';
-import { fetchIndianIndices, fetchStockWatchlist, fetchChennaiWeather } from '../lib/api';
+import { fetchIndianIndices, fetchStockWatchlist, fetchChennaiWeather, fetchLiveNews, timeAgo } from '../lib/api';
 import IndexCard from '../components/IndexCard';
 import StockCard from '../components/StockCard';
 import WeatherWidget from '../components/WeatherWidget';
@@ -31,13 +31,6 @@ const item = {
   show: { opacity: 1, y: 0 },
 };
 
-// ── Mock Data ──
-const recentNews = [
-  'Apple announces M4 Ultra chip with 80-core GPU',
-  'Federal Reserve signals rate pause through Q1 2025',
-  'SpaceX Starship completes 6th orbital flight test',
-];
-
 const habitData = [
   { name: 'Exercise', streak: 12, completed: true },
   { name: 'Read 30min', streak: 7, completed: false },
@@ -46,12 +39,13 @@ const habitData = [
 ];
 
 export default function Dashboard() {
-  const { indianIndices, stockWatchlist, weather } = useJarvisStore();
+  const { indianIndices, stockWatchlist, weather, newsArticles } = useJarvisStore();
 
   useEffect(() => {
     fetchIndianIndices();
     fetchStockWatchlist();
     fetchChennaiWeather();
+    fetchLiveNews();
   }, []);
 
   const now = new Date();
@@ -170,12 +164,19 @@ export default function Dashboard() {
             <h2 className="font-hud text-xs tracking-[0.15em] text-jarvis-cyan uppercase">Top News</h2>
           </div>
           <div className="space-y-3">
-            {recentNews.map((headline, i) => (
-              <div key={i} className="flex items-start gap-3 group cursor-pointer">
-                <span className="font-mono text-xs text-jarvis-cyan/40 mt-0.5">{String(i + 1).padStart(2, '0')}</span>
-                <p className="text-sm text-jarvis-text-dim group-hover:text-jarvis-text transition-colors leading-relaxed">{headline}</p>
-              </div>
-            ))}
+            {newsArticles.length > 0 ? (
+              newsArticles.slice(0, 5).map((article, i) => (
+                <a key={article.id} href={article.url} target="_blank" rel="noopener noreferrer" className="flex items-start gap-3 group cursor-pointer no-underline">
+                  <span className="font-mono text-xs text-jarvis-cyan/40 mt-0.5">{String(i + 1).padStart(2, '0')}</span>
+                  <div className="flex-1">
+                    <p className="text-sm text-jarvis-text-dim group-hover:text-jarvis-text transition-colors leading-relaxed">{article.title}</p>
+                    <p className="text-[0.6rem] text-jarvis-text-dim/40 mt-0.5 font-mono">{article.source} · {timeAgo(article.publishedAt)}</p>
+                  </div>
+                </a>
+              ))
+            ) : (
+              <p className="text-sm text-jarvis-text-dim/40">Loading news...</p>
+            )}
           </div>
         </motion.div>
 

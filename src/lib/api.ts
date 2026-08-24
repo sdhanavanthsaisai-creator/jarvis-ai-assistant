@@ -1,6 +1,7 @@
 // src/lib/api.ts
 import { useJarvisStore } from './store';
 import type { StockQuote, WeatherData } from './types';
+import type { NewsArticle } from './store';
 
 const YAHOO_BASE = '/api/yahoo/v8/finance/chart';
 const YAHOO_HEADERS = { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' };
@@ -250,3 +251,90 @@ export async function fetchChennaiWeather(): Promise<void> {
     setWeatherLoading(false);
   }
 }
+
+// ══════════════════════════════════════════════════════
+// NEWS — Live RSS Feed Fetcher
+// ══════════════════════════════════════════════════════
+
+interface RSSFeed { url: string; source: string; category: string; }
+
+const RSS_FEEDS: RSSFeed[] = [
+  { url: '/api/rss/techcrunch', source: 'TechCrunch', category: 'Tech' },
+  { url: '/api/rss/bbc', source: 'BBC News', category: 'World' },
+  { url: '/api/rss/hn', source: 'Hacker News', category: 'Tech' },
+  { url: '/api/rss/india', source: 'Google News India', category: 'India' },
+];
+
+function parseRSSItems(xml: string, source: string, category: string): NewsArticle[] {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(xml, 'text/xml');
+  const items = doc.querySelectorAll('item');
+  const articles: NewsArticle[] = [];
+
+  items.forEach((item) => {
+    const title = item.querySelector('title')?.textContent?.trim() || '';
+    const description = item.querySelector('description')?.textContent?.trim() || '';
+    const link = item.querySelector('link')?.textContent?.trim() || '';
+    const pubDate = item.querySelector('pubDate')?.textContent || '';
+
+    // Strip HTML from description
+    const tmp = document.createElement('div');
+    tmp.innerHTML = description;
+    const summary = tmp.textContent?.trim().slice(0, 200) || '';
+
+    if (title) {
+      articles.push({
+        id: `${source}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        title,
+        summary,
+        source,
+        url: link,
+        publishedAt: pubDate ? new Date(pubDate).getTime() : Date.now(),
+        category,
+      });
+    }
+  });
+
+  return articles;
+}
+
+function timeAgo(ts: number): string {
+  const diff = Date.now() - ts;
+  const mins = Math.floor(diff / 60000);
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
+}
+
+export async function fetchLiveNews(): Promise<void> {
+  const { setNewsArticles, setNewsLoading } = useJarvisStore.getState();
+  setNewsLoading(true);
+
+  const allArticles: NewsArticle[] = [];
+
+  const results = await Promise.allSettled(
+    RSS_FEEDS.map(async (feed) => {
+      try {
+        const res = await fetch(feed.url);
+        if (!res.ok) return [];
+        const xml = await res.text();
+        return parseRSSItems(xml, feed.source, feed.category);
+      } catch {
+        return [];
+      }
+    })
+  );
+
+  for (const r of results) {
+    if (r.status === 'fulfilled') allArticles.push(...r.value);
+  }
+
+  // Sort by most recent first, keep top 30
+  allArticles.sort((a, b) => b.publishedAt - a.publishedAt);
+  setNewsArticles(allArticles.slice(0, 30));
+  setNewsLoading(false);
+}
+
+export { timeAgo };

@@ -1,6 +1,16 @@
 import { create } from 'zustand';
 import type { StockQuote, WeatherData } from './types';
 
+export interface NewsArticle {
+  id: string;
+  title: string;
+  summary: string;
+  source: string;
+  url: string;
+  publishedAt: number;
+  category: string;
+}
+
 // ══════════════════════════════════════════════════════
 // JARVIS GLOBAL STATE (Zustand)
 // ══════════════════════════════════════════════════════
@@ -45,7 +55,13 @@ interface JarvisState {
   weatherLoading: boolean;
   weatherError: string | null;
 
+  // ── News ──
+  newsArticles: NewsArticle[];
+  newsLoading: boolean;
+
   // ── Actions ──
+  setNewsArticles: (articles: NewsArticle[]) => void;
+  setNewsLoading: (v: boolean) => void;
   setCurrentModel: (model: string) => void;
   setAvailableModels: (models: string[]) => void;
   setProcessing: (v: boolean) => void;
@@ -84,6 +100,8 @@ export const useJarvisStore = create<JarvisState>((set) => ({
   weather: null,
   weatherLoading: false,
   weatherError: null,
+  newsArticles: [],
+  newsLoading: false,
 
   // ── Actions ──
   setCurrentModel: (model) => set({ currentModel: model }),
@@ -118,4 +136,6 @@ export const useJarvisStore = create<JarvisState>((set) => ({
   setWeather: (weather) => set({ weather, weatherError: null }),
   setWeatherLoading: (v) => set({ weatherLoading: v }),
   setWeatherError: (error) => set({ weatherError: error }),
+  setNewsArticles: (articles) => set({ newsArticles: articles }),
+  setNewsLoading: (v) => set({ newsLoading: v }),
 }));

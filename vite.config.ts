@@ -62,7 +62,31 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/yahoo/, ''),
       },
-
+      '/api/rss/techcrunch': {
+        target: 'https://techcrunch.com/feed/',
+        changeOrigin: true,
+        rewrite: () => '/',
+      },
+      '/api/rss/bbc': {
+        target: 'https://feeds.bbci.co.uk/news/rss.xml',
+        changeOrigin: true,
+        rewrite: () => '/',
+      },
+      '/api/rss/reuters': {
+        target: 'https://www.reutersagency.com/feed/',
+        changeOrigin: true,
+        rewrite: () => '/',
+      },
+      '/api/rss/hn': {
+        target: 'https://hnrss.org/frontpage',
+        changeOrigin: true,
+        rewrite: () => '/',
+      },
+      '/api/rss/india': {
+        target: 'https://news.google.com/rss?hl=en-IN&gl=IN&ceid=IN:en',
+        changeOrigin: true,
+        rewrite: () => '/',
+      },
     },
   },
   build: {
