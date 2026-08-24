@@ -4,6 +4,7 @@ import { Send, Sparkles, User, Bot, Loader2, Volume2, VolumeX } from 'lucide-rea
 import { useJarvisStore, ChatMessage } from '../lib/store';
 import VoiceButton from '../components/VoiceButton';
 import { useVoice } from '../lib/useVoice';
+import { getSmartResponse } from '../lib/smartRouter';
 
 // ══════════════════════════════════════════════════════
 // CHAT PAGE — FULL-SCREEN CONVERSATION WITH VOICE
@@ -76,42 +77,12 @@ export default function Chat() {
         }
       );
     } else {
-      // Fallback — instant smart response for browser dev
+      // Smart response (no Ollama needed)
       setTimeout(() => {
-        const lower = text.toLowerCase();
-        let response = '';
-
-        if (lower.includes('weather') || lower.includes('temperature')) {
-          const w = useJarvisStore.getState().weather;
-          if (w) {
-            response = `Currently in Chennai it's ${w.temp}°C and ${w.condition}, sir. Feels like ${w.feelsLike}°C. Humidity is at ${w.humidity}%, wind ${w.windSpeed} km/h from the ${w.windDirection}. The air quality index is ${w.aqi}, rated ${w.aqiLevel}.`;
-          } else {
-            response = "I don't have the weather data loaded yet, sir. Let me fetch that for you.";
-          }
-        } else if (lower.includes('stock') || lower.includes('nifty') || lower.includes('sensex') || lower.includes('market')) {
-          const indices = useJarvisStore.getState().indianIndices;
-          if (indices.length > 0) {
-            const nifty = indices.find(i => i.symbol === '^NSEI');
-            const sensex = indices.find(i => i.symbol === '^BSESN');
-            response = `Here's the market update, sir. ${nifty ? `Nifty 50 at ${nifty.price.toLocaleString('en-IN')}, ${nifty.changePercent >= 0 ? 'up' : 'down'} ${Math.abs(nifty.changePercent)}%` : 'Nifty data unavailable'}. ${sensex ? `Sensex at ${sensex.price.toLocaleString('en-IN')}, ${sensex.changePercent >= 0 ? 'up' : 'down'} ${Math.abs(sensex.changePercent)}%` : 'Sensex data unavailable'}. Market is currently ${useJarvisStore.getState().stockMarketStatus}.`;
-          } else {
-            response = "Market data isn't loaded yet, sir. The data should appear shortly.";
-          }
-        } else if (lower.includes('hello') || lower.includes('hi ') || lower.includes('hey')) {
-          response = "Good to see you, sir. How may I assist you today?";
-        } else if (lower.includes('who are you') || lower.includes('what are you')) {
-          response = "I am JARVIS, Just A Rather Very Intelligent System. Your personal AI assistant running locally on your machine. I can help with stocks, weather, file management, and general queries.";
-        } else if (lower.includes('time')) {
-          response = `The current time is ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}, sir.`;
-        } else if (lower.includes('date')) {
-          response = `Today is ${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}, sir.`;
-        } else {
-          response = `At your service, sir. I received your message: "${text}". To enable full AI responses, connect Ollama in Settings. Meanwhile, I can help with stocks, weather, and quick commands.`;
-        }
-
+        const response = getSmartResponse(text);
         updateLastAssistantMessage(response);
         setProcessing(false);
-      }, 500);
+      }, 300);
     }
   }, [isProcessing, addMessage, updateLastAssistantMessage, setProcessing, stopSpeaking, speak]);
 

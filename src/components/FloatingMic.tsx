@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Mic, MicOff, Send, MessageSquare } from 'lucide-react';
 import { useJarvisStore } from '../lib/store';
 import { useVoice } from '../lib/useVoice';
+import { getSmartResponse } from '../lib/smartRouter';
 
 // ══════════════════════════════════════════════════════
 // FLOATING MIC — Arc Reactor, bottom-right, all pages
@@ -37,36 +38,12 @@ export default function FloatingMic() {
       };
       addMessage(assistantMsg);
 
-      // Smart router
+      // Smart response (no Ollama needed)
       setTimeout(() => {
-        const lower = text.toLowerCase();
-        let response = '';
-
-        if (lower.includes('weather') || lower.includes('temperature')) {
-          const w = useJarvisStore.getState().weather;
-          if (w) {
-            response = `In Chennai it's ${w.temp}°C and ${w.condition}, sir. Feels like ${w.feelsLike}°C. Humidity ${w.humidity}%, wind ${w.windSpeed} km/h ${w.windDirection}. AQI is ${w.aqi}, rated ${w.aqiLevel}.`;
-          } else {
-            response = "Weather data isn't loaded yet, sir.";
-          }
-        } else if (lower.includes('stock') || lower.includes('nifty') || lower.includes('sensex') || lower.includes('market')) {
-          const indices = useJarvisStore.getState().indianIndices;
-          if (indices.length > 0) {
-            const nifty = indices.find(i => i.symbol === '^NSEI');
-            const sensex = indices.find(i => i.symbol === '^BSESN');
-            response = `Markets are ${useJarvisStore.getState().stockMarketStatus}. ${nifty ? `Nifty at ${nifty.price.toLocaleString('en-IN')}, ${nifty.changePercent >= 0 ? 'up' : 'down'} ${Math.abs(nifty.changePercent).toFixed(2)}%` : ''}. ${sensex ? `Sensex at ${sensex.price.toLocaleString('en-IN')}, ${sensex.changePercent >= 0 ? 'up' : 'down'} ${Math.abs(sensex.changePercent).toFixed(2)}%` : ''}.`;
-          } else {
-            response = "Market data isn't loaded yet, sir.";
-          }
-        } else if (lower.includes('hello') || lower.includes('hey')) {
-          response = "Good to see you, sir. How may I assist you?";
-        } else {
-          response = `At your service, sir. I received: "${text}". Connect Ollama in Settings for full AI responses.`;
-        }
-
+        const response = getSmartResponse(text);
         updateLastAssistantMessage(response);
         setProcessing(false);
-      }, 500);
+      }, 300);
     }, 300);
   }, [navigate, addMessage, setProcessing, updateLastAssistantMessage]);
 
