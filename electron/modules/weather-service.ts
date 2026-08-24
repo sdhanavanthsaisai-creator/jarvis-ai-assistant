@@ -16,9 +16,7 @@ interface WeatherData {
   windSpeed: number;
   windDirection: string;
   visibility: number;
-  pressure: number;
   condition: string;
-  conditionIcon: string;
   conditionEmoji: string;
   uvIndex: number;
   uvLevel: string;
@@ -74,7 +72,6 @@ class WeatherService {
   private apiKey: string = '';
   private waqiToken: string = '';
   private refreshTimer: ReturnType<typeof setInterval> | null = null;
-  private aqiTimer: ReturnType<typeof setInterval> | null = null;
   private cachedData: WeatherData | null = null;
 
   constructor(eventBus: EventEmitter) {
@@ -167,9 +164,7 @@ class WeatherService {
         windSpeed: Math.round(current.wind.speed * 3.6), // m/s to km/h
         windDirection: windDegToDirection(current.wind.deg || 0),
         visibility: Math.round((current.visibility || 10000) / 1000),
-        pressure: current.main.pressure,
         condition: current.weather[0]?.description || 'Unknown',
-        conditionIcon: current.weather[0]?.icon || '01d',
         conditionEmoji: getConditionEmoji(current.weather[0]?.icon || '01d'),
         uvIndex: Math.round(uvData.value || 0),
         uvLevel: getUVLevel(uvData.value || 0),
@@ -210,16 +205,10 @@ class WeatherService {
   startAutoRefresh(): void {
     this.fetchCurrentWeather();
     this.refreshTimer = setInterval(() => this.fetchCurrentWeather(), 30 * 60 * 1000);
-    this.aqiTimer = setInterval(() => this.fetchAQI(), 60 * 60 * 1000);
   }
 
   stopAutoRefresh(): void {
     if (this.refreshTimer) { clearInterval(this.refreshTimer); this.refreshTimer = null; }
-    if (this.aqiTimer) { clearInterval(this.aqiTimer); this.aqiTimer = null; }
-  }
-
-  getCachedData(): WeatherData | null {
-    return this.cachedData;
   }
 }
 

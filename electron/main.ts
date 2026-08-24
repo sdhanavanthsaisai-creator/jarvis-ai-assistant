@@ -139,23 +139,8 @@ function setupIPC() {
     return stockEngine.getMarketStatus();
   });
 
-  ipcMain.handle('stock:watchlist-add', async (_event, data: { name: string; symbol: string }) => {
-    if (!stockEngine) return;
-    stockEngine.addToWatchlist(data.name, data.symbol);
-  });
-
-  ipcMain.handle('stock:watchlist-remove', async (_event, symbol: string) => {
-    if (!stockEngine) return;
-    stockEngine.removeFromWatchlist(symbol);
-  });
-
   // ── Weather Service ──
   ipcMain.handle('weather:get', async () => {
-    if (!weatherService) return null;
-    return weatherService.fetchCurrentWeather();
-  });
-
-  ipcMain.handle('weather:refresh', async () => {
     if (!weatherService) return null;
     return weatherService.fetchCurrentWeather();
   });

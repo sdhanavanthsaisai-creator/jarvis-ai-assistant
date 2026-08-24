@@ -2,17 +2,7 @@
 import React from 'react';
 import { Cloud, Droplets, Wind, ArrowRight } from 'lucide-react';
 import { useJarvisStore } from '../lib/store';
-
-function getConditionEmoji(iconCode: string): string {
-  const emojiMap: Record<string, string> = {
-    '01d': '☀️', '01n': '🌙', '02d': '🌤️', '02n': '☁️',
-    '03d': '⛅', '03n': '⛅', '04d': '☁️', '04n': '☁️',
-    '09d': '🌧️', '09n': '🌧️', '10d': '🌦️', '10n': '🌧️',
-    '11d': '⛈️', '11n': '⛈️', '13d': '❄️', '13n': '❄️',
-    '50d': '🌫️', '50n': '🌫️',
-  };
-  return emojiMap[iconCode] || '🌡️';
-}
+import { getConditionEmoji } from '../lib/utils';
 
 export default function WeatherWidget() {
   const { weather, weatherLoading, weatherError } = useJarvisStore();

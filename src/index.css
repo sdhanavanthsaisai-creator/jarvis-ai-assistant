@@ -1,0 +1,595 @@
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Rajdhani:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ══════════════════════════════════════════════════════
+   J.A.R.V.I.S — IRON MAN HUD DESIGN SYSTEM
+   ══════════════════════════════════════════════════════ */
+
+/* ── CSS Variables ── */
+:root {
+  --jarvis-bg: #0a0a0a;
+  --jarvis-bg-elevated: #111111;
+  --jarvis-bg-card: #1a1a1a;
+  --jarvis-cyan: #00d4ff;
+  --jarvis-cyan-dim: #0088aa;
+  --jarvis-cyan-glow: rgba(0, 212, 255, 0.25);
+  --jarvis-gold: #ffd700;
+  --jarvis-gold-dim: #b8960f;
+  --jarvis-gold-glow: rgba(255, 215, 0, 0.25);
+  --jarvis-arc: #ff4444;
+  --jarvis-text: #e0e0e0;
+  --jarvis-text-dim: #888888;
+  --jarvis-border: #2a2a2a;
+  --jarvis-border-glow: rgba(0, 212, 255, 0.2);
+  --jarvis-radius: 12px;
+}
+
+/* ── Base Reset ── */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  background: var(--jarvis-bg);
+  color: var(--jarvis-text);
+  font-family: 'Rajdhani', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--jarvis-bg);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--jarvis-cyan-dim);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--jarvis-cyan);
+}
+
+/* ══════════════════════════════════════════════════════
+   GLASSMORPHISM UTILITIES
+   ══════════════════════════════════════════════════════ */
+
+@layer components {
+  /* ── Glass Card ── */
+  .glass-card {
+    background: rgba(26, 26, 26, 0.6);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--jarvis-border);
+    border-radius: var(--jarvis-radius);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .glass-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(
+      135deg,
+      rgba(0, 212, 255, 0.15),
+      transparent 40%,
+      transparent 60%,
+      rgba(0, 212, 255, 0.08)
+    );
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+
+  .glass-card-gold {
+    background: rgba(26, 26, 26, 0.6);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 215, 0, 0.15);
+    border-radius: var(--jarvis-radius);
+  }
+
+  .glass-card-gold::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(
+      135deg,
+      rgba(255, 215, 0, 0.15),
+      transparent 40%,
+      transparent 60%,
+      rgba(255, 215, 0, 0.08)
+    );
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+
+  /* ── Neon Border ── */
+  .neon-border {
+    border: 1px solid rgba(0, 212, 255, 0.3);
+    box-shadow:
+      inset 0 0 20px rgba(0, 212, 255, 0.03),
+      0 0 15px rgba(0, 212, 255, 0.1);
+    transition: all 0.3s ease;
+  }
+
+  .neon-border:hover {
+    border-color: rgba(0, 212, 255, 0.6);
+    box-shadow:
+      inset 0 0 30px rgba(0, 212, 255, 0.05),
+      0 0 25px rgba(0, 212, 255, 0.2),
+      0 0 50px rgba(0, 212, 255, 0.1);
+  }
+
+  .neon-border-gold {
+    border: 1px solid rgba(255, 215, 0, 0.3);
+    box-shadow:
+      inset 0 0 20px rgba(255, 215, 0, 0.03),
+      0 0 15px rgba(255, 215, 0, 0.1);
+    transition: all 0.3s ease;
+  }
+
+  .neon-border-gold:hover {
+    border-color: rgba(255, 215, 0, 0.6);
+    box-shadow:
+      inset 0 0 30px rgba(255, 215, 0, 0.05),
+      0 0 25px rgba(255, 215, 0, 0.2),
+      0 0 50px rgba(255, 215, 0, 0.1);
+  }
+
+  /* ── HUD Text Styles ── */
+  .hud-title {
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--jarvis-cyan);
+    text-shadow: 0 0 10px var(--jarvis-cyan-glow);
+  }
+
+  .hud-subtitle {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--jarvis-text-dim);
+    font-size: 0.75rem;
+  }
+
+  .hud-value {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 600;
+    color: var(--jarvis-cyan);
+  }
+
+  /* ── Glowing Button ── */
+  .btn-hud {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1.25rem;
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 600;
+    font-size: 0.85rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--jarvis-cyan);
+    background: rgba(0, 212, 255, 0.08);
+    border: 1px solid rgba(0, 212, 255, 0.3);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    overflow: hidden;
+  }
+
+  .btn-hud::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(0, 212, 255, 0.15),
+      transparent
+    );
+    transition: left 0.5s ease;
+  }
+
+  .btn-hud:hover::before {
+    left: 100%;
+  }
+
+  .btn-hud:hover {
+    background: rgba(0, 212, 255, 0.15);
+    border-color: rgba(0, 212, 255, 0.6);
+    box-shadow: 0 0 20px rgba(0, 212, 255, 0.2);
+    color: #fff;
+  }
+
+  .btn-hud:active {
+    transform: scale(0.97);
+  }
+
+  .btn-hud-gold {
+    color: var(--jarvis-gold);
+    background: rgba(255, 215, 0, 0.08);
+    border: 1px solid rgba(255, 215, 0, 0.3);
+  }
+
+  .btn-hud-gold:hover {
+    background: rgba(255, 215, 0, 0.15);
+    border-color: rgba(255, 215, 0, 0.6);
+    box-shadow: 0 0 20px rgba(255, 215, 0, 0.2);
+    color: #fff;
+  }
+
+  /* ── Status Indicator ── */
+  .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--jarvis-cyan);
+    box-shadow: 0 0 8px var(--jarvis-cyan-glow);
+    animation: glow-breathe 3s ease-in-out infinite;
+  }
+
+  .status-dot-gold {
+    background: var(--jarvis-gold);
+    box-shadow: 0 0 8px var(--jarvis-gold-glow);
+  }
+
+  .status-dot-green {
+    background: #00ff88;
+    box-shadow: 0 0 8px rgba(0, 255, 136, 0.4);
+  }
+
+  .status-dot-red {
+    background: var(--jarvis-arc);
+    box-shadow: 0 0 8px rgba(255, 68, 68, 0.4);
+  }
+}
+
+/* ══════════════════════════════════════════════════════
+   SCAN-LINE OVERLAY
+   ══════════════════════════════════════════════════════ */
+
+.scan-line-overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  overflow: hidden;
+}
+
+.scan-line-overlay::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(0, 212, 255, 0.06),
+    transparent
+  );
+  animation: scan-line 8s linear infinite;
+}
+
+/* ── CRT Scanlines (Subtle) ── */
+.scanlines {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9998;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0.03) 0px,
+    rgba(0, 0, 0, 0.03) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+}
+
+/* ══════════════════════════════════════════════════════
+   HUD GRID BACKGROUND
+   ══════════════════════════════════════════════════════ */
+
+.hud-grid-bg {
+  background-image:
+    linear-gradient(rgba(0, 212, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 212, 255, 0.02) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+.hud-radial-bg {
+  background: radial-gradient(
+    ellipse at center,
+    rgba(0, 212, 255, 0.05) 0%,
+    transparent 60%
+  );
+}
+
+/* ══════════════════════════════════════════════════════
+   ANIMATED SVG / NEURAL LINES
+   ══════════════════════════════════════════════════════ */
+
+@keyframes dash-flow {
+  to {
+    stroke-dashoffset: -20;
+  }
+}
+
+.neural-line {
+  stroke-dasharray: 6 4;
+  animation: dash-flow 1.5s linear infinite;
+}
+
+/* ══════════════════════════════════════════════════════
+   VOICE WAVEFORM BARS
+   ══════════════════════════════════════════════════════ */
+
+.waveform-bar {
+  width: 3px;
+  background: var(--jarvis-cyan);
+  border-radius: 2px;
+  animation: waveform 0.5s ease-in-out infinite alternate;
+  box-shadow: 0 0 4px var(--jarvis-cyan-glow);
+}
+
+.waveform-bar:nth-child(1) { animation-delay: 0s; }
+.waveform-bar:nth-child(2) { animation-delay: 0.1s; }
+.waveform-bar:nth-child(3) { animation-delay: 0.2s; }
+.waveform-bar:nth-child(4) { animation-delay: 0.3s; }
+.waveform-bar:nth-child(5) { animation-delay: 0.15s; }
+.waveform-bar:nth-child(6) { animation-delay: 0.05s; }
+.waveform-bar:nth-child(7) { animation-delay: 0.25s; }
+.waveform-bar:nth-child(8) { animation-delay: 0.35s; }
+
+/* ══════════════════════════════════════════════════════
+   ARC REACTOR MIC BUTTON
+   ══════════════════════════════════════════════════════ */
+
+.arc-reactor {
+  position: relative;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(10, 10, 10, 0.9);
+  border: 2px solid rgba(0, 212, 255, 0.4);
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.arc-reactor::before {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 212, 255, 0.15);
+  animation: glow-breathe 3s ease-in-out infinite;
+}
+
+.arc-reactor::after {
+  content: '';
+  position: absolute;
+  inset: -12px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 212, 255, 0.08);
+  animation: glow-breathe 3s ease-in-out infinite 0.5s;
+}
+
+.arc-reactor:hover {
+  border-color: rgba(0, 212, 255, 0.8);
+  box-shadow:
+    0 0 20px rgba(0, 212, 255, 0.3),
+    0 0 40px rgba(0, 212, 255, 0.15),
+    inset 0 0 15px rgba(0, 212, 255, 0.1);
+  transform: scale(1.05);
+}
+
+.arc-reactor.listening {
+  border-color: var(--jarvis-cyan);
+  box-shadow:
+    0 0 25px rgba(0, 212, 255, 0.5),
+    0 0 50px rgba(0, 212, 255, 0.25),
+    inset 0 0 20px rgba(0, 212, 255, 0.15);
+  animation: pulse-cyan 1.5s ease-in-out infinite;
+}
+
+.arc-reactor.processing {
+  border-color: var(--jarvis-gold);
+  box-shadow:
+    0 0 25px rgba(255, 215, 0, 0.5),
+    0 0 50px rgba(255, 215, 0, 0.25),
+    inset 0 0 20px rgba(255, 215, 0, 0.15);
+  animation: pulse-gold 1s ease-in-out infinite;
+}
+
+/* ══════════════════════════════════════════════════════
+   NAVIGATION
+   ══════════════════════════════════════════════════════ */
+
+.nav-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 1rem;
+  border-radius: 8px;
+  color: var(--jarvis-text-dim);
+  font-family: 'Rajdhani', sans-serif;
+  font-weight: 500;
+  font-size: 0.9rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+}
+
+.nav-item:hover {
+  color: var(--jarvis-text);
+  background: rgba(0, 212, 255, 0.05);
+}
+
+.nav-item.active {
+  color: var(--jarvis-cyan);
+  background: rgba(0, 212, 255, 0.08);
+  border-color: rgba(0, 212, 255, 0.2);
+}
+
+.nav-item.active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 60%;
+  background: var(--jarvis-cyan);
+  border-radius: 0 2px 2px 0;
+  box-shadow: 0 0 8px var(--jarvis-cyan-glow);
+}
+
+/* ══════════════════════════════════════════════════════
+   UTILITY CLASSES
+   ══════════════════════════════════════════════════════ */
+
+.text-cyan { color: var(--jarvis-cyan); }
+.text-cyan-dim { color: var(--jarvis-cyan-dim); }
+.text-gold { color: var(--jarvis-gold); }
+.text-gold-dim { color: var(--jarvis-gold-dim); }
+.text-dim { color: var(--jarvis-text-dim); }
+.bg-card { background: var(--jarvis-bg-card); }
+.bg-elevated { background: var(--jarvis-bg-elevated); }
+
+.glow-text-cyan {
+  color: var(--jarvis-cyan);
+  text-shadow: 0 0 10px var(--jarvis-cyan-glow), 0 0 20px rgba(0, 212, 255, 0.15);
+}
+
+.glow-text-gold {
+  color: var(--jarvis-gold);
+  text-shadow: 0 0 10px var(--jarvis-gold-glow), 0 0 20px rgba(255, 215, 0, 0.15);
+}
+
+/* ── Corner Decorations (HUD brackets) ── */
+.hud-corners {
+  position: relative;
+}
+
+.hud-corners::before,
+.hud-corners::after {
+  content: '';
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border-color: var(--jarvis-cyan);
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+.hud-corners::before {
+  top: -1px;
+  left: -1px;
+  border-top: 2px solid;
+  border-left: 2px solid;
+}
+
+.hud-corners::after {
+  bottom: -1px;
+  right: -1px;
+  border-bottom: 2px solid;
+  border-right: 2px solid;
+}
+
+/* ── Selection Styling ── */
+::selection {
+  background: rgba(0, 212, 255, 0.3);
+  color: #fff;
+}
+
+/* ── Focus Outline ── */
+*:focus-visible {
+  outline: 2px solid var(--jarvis-cyan);
+  outline-offset: 2px;
+}
+
+/* ── Page Transition ── */
+.page-enter {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+.page-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: all 0.3s ease-out;
+}
+
+/* ══════════════════════════════════════════════════════
+   SETTINGS INPUTS
+   ══════════════════════════════════════════════════════ */
+
+.settings-input {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.8rem;
+  color: var(--jarvis-text);
+  background: var(--jarvis-bg);
+  border: 1px solid var(--jarvis-border);
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.settings-input:focus {
+  outline: none;
+  border-color: rgba(0, 212, 255, 0.4);
+  box-shadow: 0 0 12px rgba(0, 212, 255, 0.1);
+}
+
+select.settings-input {
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23888888' d='M2 4l4 4 4-4'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  padding-right: 2rem;
+}
+
+select.settings-input option {
+  background: #1a1a1a;
+  color: #e0e0e0;
+}

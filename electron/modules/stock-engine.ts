@@ -48,7 +48,6 @@ class StockEngine {
   private eventBus: EventEmitter;
   private watchlist: Array<{ name: string; symbol: string }> = [...DEFAULT_WATCHLIST];
   private refreshTimer: ReturnType<typeof setInterval> | null = null;
-  private cachedQuotes: StockQuote[] = [];
 
   constructor(eventBus: EventEmitter) {
     this.eventBus = eventBus;
@@ -131,7 +130,6 @@ class StockEngine {
     ];
 
     const quotes = await this.fetchQuotes(allSymbols);
-    this.cachedQuotes = quotes;
     this.eventBus.emit('stock:update', quotes);
   }
 
@@ -170,22 +168,9 @@ class StockEngine {
     this.watchlist = this.watchlist.filter(s => s.symbol !== symbol);
   }
 
-  getWatchlist(): Array<{ name: string; symbol: string }> {
-    return [...this.watchlist];
-  }
-
   startAutoRefresh(): void {
     this.fetchAllQuotes();
-    const interval = this.getMarketStatus() === 'open' ? 5 * 60 * 1000 : 30 * 60 * 1000;
-    this.refreshTimer = setInterval(() => {
-      const newInterval = this.getMarketStatus() === 'open' ? 5 * 60 * 1000 : 30 * 60 * 1000;
-      if (newInterval !== interval) {
-        clearInterval(this.refreshTimer!);
-        this.startAutoRefresh();
-      } else {
-        this.fetchAllQuotes();
-      }
-    }, interval);
+    this.refreshTimer = setInterval(() => this.fetchAllQuotes(), 5 * 60 * 1000);
   }
 
   stopAutoRefresh(): void {
@@ -195,9 +180,6 @@ class StockEngine {
     }
   }
 
-  getCachedQuotes(): StockQuote[] {
-    return this.cachedQuotes;
-  }
 }
 
 export default StockEngine;

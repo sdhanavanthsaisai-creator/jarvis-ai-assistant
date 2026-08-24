@@ -84,10 +84,6 @@ const electronAPI = {
       ipcRenderer.invoke('stock:get-sectors'),
     getMarketStatus: (): Promise<string> =>
       ipcRenderer.invoke('stock:market-status'),
-    watchlistAdd: (data: { name: string; symbol: string }): Promise<void> =>
-      ipcRenderer.invoke('stock:watchlist-add', data),
-    watchlistRemove: (symbol: string): Promise<void> =>
-      ipcRenderer.invoke('stock:watchlist-remove', symbol),
     onUpdate: (callback: (data: any[]) => void) => {
       ipcRenderer.on('stock:update', (_event, data) => callback(data));
     },
@@ -97,8 +93,6 @@ const electronAPI = {
   weather: {
     get: (): Promise<any> =>
       ipcRenderer.invoke('weather:get'),
-    refresh: (): Promise<any> =>
-      ipcRenderer.invoke('weather:refresh'),
     onUpdate: (callback: (data: any) => void) => {
       ipcRenderer.on('weather:update', (_event, data) => callback(data));
     },

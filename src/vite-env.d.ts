@@ -30,13 +30,10 @@ interface ElectronAPI {
     getIndices: () => Promise<any[]>;
     getSectors: () => Promise<any[]>;
     getMarketStatus: () => Promise<string>;
-    watchlistAdd: (data: { name: string; symbol: string }) => Promise<void>;
-    watchlistRemove: (symbol: string) => Promise<void>;
     onUpdate: (callback: (data: any[]) => void) => void;
   };
   weather: {
     get: () => Promise<any>;
-    refresh: () => Promise<any>;
     onUpdate: (callback: (data: any) => void) => void;
     onError: (callback: (error: string) => void) => void;
   };

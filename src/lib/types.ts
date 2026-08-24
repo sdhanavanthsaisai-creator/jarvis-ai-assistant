@@ -11,8 +11,6 @@ export interface StockQuote {
   week52High: number;
   week52Low: number;
   volume: number;
-  marketCap?: number;
-  pe?: number;
   timestamp: number;
 }
 
@@ -40,9 +38,7 @@ export interface WeatherData {
   windSpeed: number;
   windDirection: string;
   visibility: number;
-  pressure: number;
   condition: string;
-  conditionIcon: string;
   conditionEmoji: string;
   uvIndex: number;
   uvLevel: string;

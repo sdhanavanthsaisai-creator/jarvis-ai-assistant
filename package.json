@@ -1,0 +1,56 @@
+{
+  "name": "jarvis-ai-assistant",
+  "version": "1.0.0",
+  "description": "JARVIS — AI-powered personal assistant desktop application with Iron Man HUD aesthetic",
+  "private": true,
+  "main": "dist-electron/main.js",
+  "author": "JARVIS Project",
+  "license": "MIT",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build && tsc -p tsconfig.electron.json",
+    "preview": "vite preview",
+    "electron:dev": "vite --config vite.config.ts & sleep 3 && electron .",
+    "electron:build": "npm run build && electron-builder",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src --ext .ts,.tsx"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.28.0",
+    "zustand": "^5.0.0",
+    "ollama": "^0.5.0",
+    "chokidar": "^4.0.0",
+    "node-cron": "^3.0.3",
+    "node-notifier": "^10.0.1",
+    "lightweight-charts": "^4.2.0",
+    "rss-parser": "^3.13.0",
+    "axios": "^1.7.0",
+    "date-fns": "^4.1.0",
+    "lucide-react": "^0.460.0",
+    "framer-motion": "^11.11.0"
+  },
+  "optionalDependencies": {
+    "better-sqlite3": "^11.6.0",
+    "puppeteer": "^23.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.0",
+    "@types/better-sqlite3": "^7.6.11",
+    "@types/node": "^22.0.0",
+    "@types/node-cron": "^3.0.11",
+    "@types/node-notifier": "^8.0.5",
+    "@vitejs/plugin-react": "^4.3.0",
+    "autoprefixer": "^10.4.20",
+    "electron": "^33.0.0",
+    "electron-builder": "^25.1.0",
+    "postcss": "^8.4.47",
+    "tailwindcss": "^3.4.0",
+    "typescript": "^5.6.0",
+    "vite": "^5.4.0",
+    "vite-plugin-electron": "^0.28.0",
+    "vite-plugin-electron-renderer": "^0.14.0"
+  }
+}

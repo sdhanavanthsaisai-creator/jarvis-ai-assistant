@@ -34,19 +34,7 @@ export default function IndexCard({ data, compact = false }: IndexCardProps) {
         </div>
       )}
 
-      {!compact && (
-        <div className="mt-3 h-8">
-          <svg viewBox="0 0 100 30" className="w-full h-full" preserveAspectRatio="none">
-            <path
-              d={`M0,${isUp ? 25 : 5} Q25,${isUp ? 10 : 20} 50,${isUp ? 15 : 15} T100,${isUp ? 5 : 25}`}
-              fill="none"
-              stroke={isUp ? '#00ff88' : '#ff4444'}
-              strokeWidth="1.5"
-              opacity="0.6"
-            />
-          </svg>
-        </div>
-      )}
+
     </div>
   );
 }

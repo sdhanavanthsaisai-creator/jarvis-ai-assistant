@@ -62,28 +62,4 @@ export async function fetchChennaiWeather(): Promise<void> {
   }
 }
 
-export function setupRealtimeListeners(): void {
-  if (!window.electronAPI) return;
 
-  window.electronAPI.stock.onUpdate((data: any[]) => {
-    const { setIndianIndices, setSectorIndices, setStockWatchlist } = useJarvisStore.getState();
-    const indexSymbols = ['^NSEI', '^BSESN', '^NSEBANK'];
-    const sectorSymbols = ['^CNXIT', '^CNXPHARMA', '^CNXAUTO', '^CNXFMCG', '^CNXMETAL', '^CNXREALTY', '^NSEMDCP50'];
-
-    const indices = data.filter((q: any) => indexSymbols.includes(q.symbol));
-    const sectors = data.filter((q: any) => sectorSymbols.includes(q.symbol));
-    const stocks = data.filter((q: any) => !indexSymbols.includes(q.symbol) && !sectorSymbols.includes(q.symbol));
-
-    setIndianIndices(indices);
-    setSectorIndices(sectors);
-    setStockWatchlist(stocks);
-  });
-
-  window.electronAPI.weather.onUpdate((data: any) => {
-    useJarvisStore.getState().setWeather(data);
-  });
-
-  window.electronAPI.weather.onError((error: string) => {
-    useJarvisStore.getState().setWeatherError(error);
-  });
-}

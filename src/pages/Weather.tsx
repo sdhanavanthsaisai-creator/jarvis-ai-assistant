@@ -1,13 +1,10 @@
 // src/pages/Weather.tsx
 import React, { useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Cloud, Droplets, Wind, Eye, Sun, Thermometer, RefreshCw } from 'lucide-react';
+import { Cloud, Droplets, Wind, Eye, Sun, RefreshCw } from 'lucide-react';
 import { useJarvisStore } from '../lib/store';
 import { fetchChennaiWeather } from '../lib/api';
-
-// ══════════════════════════════════════════════════════
-// CHENNAI WEATHER DASHBOARD
-// ══════════════════════════════════════════════════════
+import { getConditionEmoji } from '../lib/utils';
 
 const container = {
   hidden: { opacity: 0 },
@@ -18,17 +15,6 @@ const item = {
   hidden: { opacity: 0, y: 15 },
   show: { opacity: 1, y: 0 },
 };
-
-function getConditionEmoji(iconCode: string): string {
-  const emojiMap: Record<string, string> = {
-    '01d': '☀️', '01n': '🌙', '02d': '🌤️', '02n': '☁️',
-    '03d': '⛅', '03n': '⛅', '04d': '☁️', '04n': '☁️',
-    '09d': '🌧️', '09n': '🌧️', '10d': '🌦️', '10n': '🌧️',
-    '11d': '⛈️', '11n': '⛈️', '13d': '❄️', '13n': '❄️',
-    '50d': '🌫️', '50n': '🌫️',
-  };
-  return emojiMap[iconCode] || '🌡️';
-}
 
 function formatTime(iso: string): string {
   return new Date(iso).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
