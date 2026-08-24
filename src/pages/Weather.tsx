@@ -67,6 +67,7 @@ export default function Weather() {
         <div className="text-center">
           <Cloud size={40} className="text-jarvis-text-dim/30 mx-auto mb-4" />
           <p className="text-sm text-jarvis-text-dim">Weather data unavailable</p>
+          <p className="text-xs text-jarvis-text-dim/50 mt-2">Set OPENWEATHER_API_KEY in electron/.env</p>
           <button onClick={fetchChennaiWeather} className="btn-hud text-xs mt-4">
             <RefreshCw size={14} /> Retry
           </button>
@@ -75,7 +76,19 @@ export default function Weather() {
     );
   }
 
-  if (!weather) return null;
+  if (!weather) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="text-center">
+          <Cloud size={40} className="text-jarvis-text-dim/30 mx-auto mb-4" />
+          <p className="text-sm text-jarvis-text-dim">No weather data yet</p>
+          <button onClick={fetchChennaiWeather} className="btn-hud text-xs mt-4">
+            <RefreshCw size={14} /> Load Weather
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <motion.div variants={container} initial="hidden" animate="show" className="space-y-5">
