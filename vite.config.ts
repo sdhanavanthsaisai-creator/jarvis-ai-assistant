@@ -56,6 +56,18 @@ export default defineConfig({
   server: {
     port: 5173,
     strictPort: false,
+    proxy: {
+      '/api/yahoo': {
+        target: 'https://query1.finance.yahoo.com',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/yahoo/, ''),
+      },
+      '/api/owm': {
+        target: 'https://api.openweathermap.org',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/owm/, ''),
+      },
+    },
   },
   build: {
     outDir: 'dist',
