@@ -13,6 +13,9 @@ let aiBrain: any;
 let systemControl: any;
 let stockEngine: any;
 let weatherService: any;
+let emailService: any;
+let webSearch: any;
+let browserAutomation: any;
 
 let mainWindow: BrowserWindow | null = null;
 
@@ -145,6 +148,99 @@ function setupIPC() {
     return weatherService.fetchCurrentWeather();
   });
 
+  // ── Email Service (Gmail) ──
+  ipcMain.handle('email:authenticate', async (_event, clientId: string, clientSecret: string) => {
+    if (!emailService) return { success: false, message: 'Email service not initialized' };
+    return emailService.authenticate(clientId, clientSecret);
+  });
+
+  ipcMain.handle('email:auth-callback', async (_event, code: string) => {
+    if (!emailService) return { success: false, message: 'Email service not initialized' };
+    return emailService.handleAuthCallback(code);
+  });
+
+  ipcMain.handle('email:parse-draft', async (_event, input: string) => {
+    if (!emailService) return null;
+    return emailService.parseEmailCommand(input);
+  });
+
+  ipcMain.handle('email:confirm-send', async (_event, draft: any) => {
+    if (!emailService) return { success: false, message: 'Email service not initialized' };
+    return emailService.confirmAndSend(draft);
+  });
+
+  ipcMain.handle('email:read-inbox', async (_event, maxResults?: number) => {
+    if (!emailService) return { success: false, messages: [], message: 'Email service not initialized' };
+    return emailService.readInbox(maxResults);
+  });
+
+  ipcMain.handle('email:search-emails', async (_event, query: string, maxResults?: number) => {
+    if (!emailService) return { success: false, messages: [], message: 'Email service not initialized' };
+    return emailService.searchEmails(query, maxResults);
+  });
+
+  ipcMain.handle('email:get-status', async () => {
+    if (!emailService) return { isAuthenticated: false, email: '' };
+    return emailService.getStatus();
+  });
+
+  // ── Web Search ──
+  ipcMain.handle('web:search', async (_event, query: string, numResults?: number) => {
+    if (!webSearch) return { results: [], query };
+    return webSearch.searchWeb(query, numResults);
+  });
+
+  ipcMain.handle('web:fetch', async (_event, url: string, maxLength?: number) => {
+    if (!webSearch) return { success: false, content: '', title: '', url };
+    return webSearch.fetchPage(url, maxLength);
+  });
+
+  ipcMain.handle('web:summarize', async (_event, query: string) => {
+    if (!webSearch) return { query, results: [], content: '' };
+    return webSearch.searchAndSummarize(query);
+  });
+
+  // ── Browser Automation ──
+  ipcMain.handle('browser:open', async () => {
+    if (!browserAutomation) return { success: false, message: 'Browser automation not initialized' };
+    return browserAutomation.openBrowser();
+  });
+
+  ipcMain.handle('browser:navigate', async (_event, url: string) => {
+    if (!browserAutomation) return { success: false, title: '', url, message: 'Browser automation not initialized' };
+    return browserAutomation.navigateTo(url);
+  });
+
+  ipcMain.handle('browser:action', async (_event, type: string, selector?: string, text?: string) => {
+    if (!browserAutomation) return { success: false, message: 'Browser automation not initialized' };
+    switch (type) {
+      case 'click': return browserAutomation.clickElement(selector);
+      case 'type': return browserAutomation.typeText(selector, text);
+      case 'extract': return browserAutomation.extractText(selector);
+      default: return { success: false, message: `Unknown action: ${type}` };
+    }
+  });
+
+  ipcMain.handle('browser:get-content', async () => {
+    if (!browserAutomation) return { success: false, content: '', title: '', message: 'Browser automation not initialized' };
+    return browserAutomation.getPageContent();
+  });
+
+  ipcMain.handle('browser:screenshot', async () => {
+    if (!browserAutomation) return { success: false, screenshot: '', message: 'Browser automation not initialized' };
+    return browserAutomation.takeScreenshot();
+  });
+
+  ipcMain.handle('browser:close', async () => {
+    if (!browserAutomation) return { success: false, message: 'Browser automation not initialized' };
+    return browserAutomation.closeBrowser();
+  });
+
+  ipcMain.handle('browser:get-status', async () => {
+    if (!browserAutomation) return { isRunning: false, currentUrl: '' };
+    return browserAutomation.getStatus();
+  });
+
   // ── Window Controls ──
   ipcMain.on('window:minimize', () => mainWindow?.minimize());
   ipcMain.on('window:maximize', () => {
@@ -171,12 +267,18 @@ app.whenReady().then(async () => {
   const { default: SystemControl } = await import('./modules/system-control');
   const { default: StockEngineModule } = await import('./modules/stock-engine');
   const { default: WeatherServiceModule } = await import('./modules/weather-service');
+  const { default: EmailServiceModule } = await import('./modules/email-service');
+  const { default: WebSearchModule } = await import('./modules/web-search');
+  const { default: BrowserAutomationModule } = await import('./modules/browser-automation');
 
   eventBus = new JarvisEventBus();
   aiBrain = new AIBrain(eventBus);
   systemControl = new SystemControl(eventBus);
   stockEngine = new StockEngineModule(eventBus);
   weatherService = new WeatherServiceModule(eventBus);
+  emailService = new EmailServiceModule(eventBus);
+  webSearch = new WebSearchModule(eventBus);
+  browserAutomation = new BrowserAutomationModule(eventBus);
 
   // Load API keys from env
   weatherService.setApiKey(process.env.OPENWEATHER_API_KEY || '');
@@ -205,6 +307,10 @@ app.whenReady().then(async () => {
 
   eventBus.on('weather:error', (error: string) => {
     mainWindow?.webContents.send('weather:error', error);
+  });
+
+  eventBus.on('email:authenticated', (data: any) => {
+    mainWindow?.webContents.send('email:authenticated', data);
   });
 
   // Start auto-refresh

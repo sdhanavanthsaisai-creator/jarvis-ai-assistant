@@ -338,3 +338,95 @@ export async function fetchLiveNews(): Promise<void> {
 }
 
 export { timeAgo };
+
+// ══════════════════════════════════════════════════════
+// WEB SEARCH — DuckDuckGo + SearXNG Fallback (Browser)
+// ══════════════════════════════════════════════════════
+
+export interface SearchResult {
+  title: string;
+  url: string;
+  snippet: string;
+  source: string;
+}
+
+// Search DuckDuckGo (works in browser via Vite proxy)
+export async function searchWeb(query: string, numResults = 5): Promise<SearchResult[]> {
+  try {
+    const url = `/api/search/ddg/?q=${encodeURIComponent(query)}`;
+    const res = await fetch(url, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
+    });
+
+    if (!res.ok) throw new Error(`Search returned ${res.status}`);
+
+    const html = await res.text();
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+
+    const results: SearchResult[] = [];
+    const resultElements = doc.querySelectorAll('.result');
+
+    resultElements.forEach((el) => {
+      const titleEl = el.querySelector('.result__title a');
+      const snippetEl = el.querySelector('.result__snippet');
+      const title = titleEl?.textContent?.trim() || '';
+      let href = titleEl?.getAttribute('href') || '';
+      const snippet = snippetEl?.textContent?.trim() || '';
+
+      // Extract actual URL from DDG redirect
+      if (href.includes('uddg=')) {
+        const match = href.match(/uddg=([^&]+)/);
+        if (match) href = decodeURIComponent(match[1]);
+      }
+
+      if (title && href) {
+        try {
+          const hostname = new URL(href).hostname;
+          results.push({ title, url: href, snippet, source: hostname });
+        } catch {
+          results.push({ title, url: href, snippet, source: 'unknown' });
+        }
+      }
+    });
+
+    return results.slice(0, numResults);
+  } catch (err) {
+    console.warn('[Search] DDG failed, trying SearXNG:', err);
+    return searchSearXNG(query, numResults);
+  }
+}
+
+// Search SearXNG (fallback)
+async function searchSearXNG(query: string, numResults = 5): Promise<SearchResult[]> {
+  try {
+    const url = `/api/search/searxng/search?q=${encodeURIComponent(query)}&format=json`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`SearXNG returned ${res.status}`);
+
+    const data = await res.json() as any;
+    return (data.results || []).slice(0, numResults).map((r: any) => ({
+      title: r.title || '',
+      url: r.url || '',
+      snippet: r.content || '',
+      source: r.engine || 'searxng',
+    }));
+  } catch (err) {
+    console.error('[Search] SearXNG also failed:', err);
+    return [];
+  }
+}
+
+// Fetch and extract page content
+export async function fetchPageContent(url: string, maxLength = 3000): Promise<{ title: string; content: string }> {
+  try {
+    // In browser, we can't directly fetch arbitrary pages due to CORS
+    // Use the proxy or return a message
+    return {
+      title: 'Page Content',
+      content: `To fetch and read web pages, run JARVIS in Electron mode (npm run electron:dev) for full browser automation.`,
+    };
+  } catch {
+    return { title: '', content: '' };
+  }
+}

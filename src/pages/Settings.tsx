@@ -1,16 +1,17 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Settings as SettingsIcon, Cpu, FolderOpen, Palette, Mic, Bell, Shield, Save } from 'lucide-react';
+import { Settings as SettingsIcon, Cpu, FolderOpen, Palette, Mic, Bell, Shield, Save, Mail, Globe, Chrome } from 'lucide-react';
 import { useJarvisStore } from '../lib/store';
 
 // ══════════════════════════════════════════════════════
 // SETTINGS PAGE — Configuration Hub
 // ══════════════════════════════════════════════════════
 
-type SettingsTab = 'ai' | 'vault' | 'theme' | 'voice' | 'system';
+type SettingsTab = 'ai' | 'vault' | 'theme' | 'voice' | 'system' | 'integrations';
 
 const tabs: { id: SettingsTab; label: string; icon: any }[] = [
   { id: 'ai', label: 'AI Engine', icon: Cpu },
+  { id: 'integrations', label: 'Integrations', icon: Globe },
   { id: 'vault', label: 'Vault Paths', icon: FolderOpen },
   { id: 'theme', label: 'Theme', icon: Palette },
   { id: 'voice', label: 'Voice', icon: Mic },
@@ -53,6 +54,7 @@ export default function SettingsPage() {
             transition={{ duration: 0.2 }}
           >
             {activeTab === 'ai' && <AITab currentModel={currentModel} setCurrentModel={setCurrentModel} />}
+            {activeTab === 'integrations' && <IntegrationsTab />}
             {activeTab === 'vault' && <VaultTab />}
             {activeTab === 'theme' && <ThemeTab />}
             {activeTab === 'voice' && <VoiceTab />}
@@ -105,6 +107,108 @@ function AITab({ currentModel, setCurrentModel }: { currentModel: string; setCur
         <Field label="Max History Length">
           <input type="number" defaultValue={20} className="settings-input w-24" />
         </Field>
+      </div>
+    </div>
+  );
+}
+
+// ── Integrations Tab ──
+function IntegrationsTab() {
+  const [gmailConnected, setGmailConnected] = useState(false);
+  const [gmailEmail, setGmailEmail] = useState('');
+
+  const handleConnectGmail = () => {
+    if (window.electronAPI) {
+      // In Electron, trigger OAuth flow
+      window.electronAPI.email.authenticate('', '').then((result: any) => {
+        if (result.success && result.authUrl) {
+          // Open auth URL in browser
+          window.open(result.authUrl, '_blank');
+        }
+      });
+    } else {
+      // Demo mode
+      setGmailConnected(true);
+      setGmailEmail('demo@gmail.com');
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <SectionTitle title="Email (Gmail)" />
+      <div className="glass-card neon-border p-5 space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Mail size={20} className="text-jarvis-cyan" />
+            <div>
+              <p className="text-sm text-jarvis-text">Gmail Integration</p>
+              <p className="text-xs text-jarvis-text-dim">Send and read emails via JARVIS</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            {gmailConnected && (
+              <span className="flex items-center gap-1.5 text-xs text-jarvis-cyan">
+                <div className="w-2 h-2 rounded-full bg-green-400" />
+                {gmailEmail}
+              </span>
+            )}
+            <button
+              onClick={handleConnectGmail}
+              className={`btn-hud text-xs ${gmailConnected ? 'border-green-400/30 text-green-400' : ''}`}
+            >
+              {gmailConnected ? 'Connected' : 'Connect Gmail'}
+            </button>
+          </div>
+        </div>
+        <div className="text-xs text-jarvis-text-dim/60 space-y-1">
+          <p>• Send emails: "Send email to user@gmail.com about meeting"</p>
+          <p>• Read inbox: "Check my inbox"</p>
+          <p>• Search: "Search emails for invoice"</p>
+        </div>
+      </div>
+
+      <SectionTitle title="Web Search" />
+      <div className="glass-card neon-border p-5 space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Globe size={20} className="text-jarvis-cyan" />
+            <div>
+              <p className="text-sm text-jarvis-text">Web Search (DuckDuckGo)</p>
+              <p className="text-xs text-jarvis-text-dim">Free, no API key needed</p>
+            </div>
+          </div>
+          <span className="flex items-center gap-1.5 text-xs text-green-400">
+            <div className="w-2 h-2 rounded-full bg-green-400" />
+            Active
+          </span>
+        </div>
+        <div className="text-xs text-jarvis-text-dim/60 space-y-1">
+          <p>• Search: "Search for latest AI news"</p>
+          <p>• Look up: "Look up React 19 features"</p>
+          <p>• Browse: "Browse amazon.in for headphones"</p>
+        </div>
+      </div>
+
+      <SectionTitle title="Browser Automation" />
+      <div className="glass-card neon-border p-5 space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Chrome size={20} className="text-jarvis-cyan" />
+            <div>
+              <p className="text-sm text-jarvis-text">Puppeteer (Local Chrome)</p>
+              <p className="text-xs text-jarvis-text-dim">Full browser automation</p>
+            </div>
+          </div>
+          <span className="flex items-center gap-1.5 text-xs text-jarvis-text-dim">
+            <div className="w-2 h-2 rounded-full bg-yellow-400" />
+            Desktop Only
+          </span>
+        </div>
+        <div className="text-xs text-jarvis-text-dim/60 space-y-1">
+          <p>• Open: "Open youtube.com"</p>
+          <p>• Interact: "Click the search button"</p>
+          <p>• Extract: "Get the page content"</p>
+        </div>
       </div>
     </div>
   );

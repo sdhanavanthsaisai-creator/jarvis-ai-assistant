@@ -32,7 +32,6 @@ const electronAPI = {
 
       ipcRenderer.on('ai:stream:callback', handleChunk);
 
-      // Use a polling approach for the channel
       ipcRenderer.on('ai:response', (_e: any, data: any) => {
         if (data && data.channel) {
           ipcRenderer.removeAllListeners(`ai:stream:${data.channel}`);
@@ -99,6 +98,66 @@ const electronAPI = {
     onError: (callback: (error: string) => void) => {
       ipcRenderer.on('weather:error', (_event, error) => callback(error));
     },
+  },
+
+  // ── Email (Gmail API) ──
+  email: {
+    authenticate: (clientId: string, clientSecret: string): Promise<any> =>
+      ipcRenderer.invoke('email:authenticate', clientId, clientSecret),
+
+    handleAuthCallback: (code: string): Promise<any> =>
+      ipcRenderer.invoke('email:auth-callback', code),
+
+    parseDraft: (input: string): Promise<any> =>
+      ipcRenderer.invoke('email:parse-draft', input),
+
+    confirmSend: (draft: any): Promise<any> =>
+      ipcRenderer.invoke('email:confirm-send', draft),
+
+    readInbox: (maxResults?: number): Promise<any> =>
+      ipcRenderer.invoke('email:read-inbox', maxResults),
+
+    searchEmails: (query: string, maxResults?: number): Promise<any> =>
+      ipcRenderer.invoke('email:search-emails', query, maxResults),
+
+    getStatus: (): Promise<any> =>
+      ipcRenderer.invoke('email:get-status'),
+  },
+
+  // ── Web Search ──
+  web: {
+    search: (query: string, numResults?: number): Promise<any> =>
+      ipcRenderer.invoke('web:search', query, numResults),
+
+    fetch: (url: string, maxLength?: number): Promise<any> =>
+      ipcRenderer.invoke('web:fetch', url, maxLength),
+
+    summarize: (query: string): Promise<any> =>
+      ipcRenderer.invoke('web:summarize', query),
+  },
+
+  // ── Browser Automation ──
+  browser: {
+    open: (): Promise<any> =>
+      ipcRenderer.invoke('browser:open'),
+
+    navigate: (url: string): Promise<any> =>
+      ipcRenderer.invoke('browser:navigate', url),
+
+    action: (type: string, selector?: string, text?: string): Promise<any> =>
+      ipcRenderer.invoke('browser:action', type, selector, text),
+
+    getContent: (): Promise<any> =>
+      ipcRenderer.invoke('browser:get-content'),
+
+    screenshot: (): Promise<any> =>
+      ipcRenderer.invoke('browser:screenshot'),
+
+    close: (): Promise<any> =>
+      ipcRenderer.invoke('browser:close'),
+
+    getStatus: (): Promise<any> =>
+      ipcRenderer.invoke('browser:get-status'),
   },
 
   // ── Event Listeners ──

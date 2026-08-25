@@ -37,6 +37,16 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: () => '/',
       },
+      '/api/search/ddg': {
+        target: 'https://html.duckduckgo.com',
+        changeOrigin: true,
+        rewrite: (path: string) => path.replace(/^\/api\/search\/ddg/, '/html'),
+      },
+      '/api/search/searxng': {
+        target: 'https://search.inetol.net',
+        changeOrigin: true,
+        rewrite: (path: string) => path.replace(/^\/api\/search\/searxng/, ''),
+      },
     },
   },
 });

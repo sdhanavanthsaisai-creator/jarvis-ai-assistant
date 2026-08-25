@@ -14,6 +14,7 @@ export default function Chat() {
   const { messages, addMessage, updateLastAssistantMessage, isProcessing, setProcessing, isSpeaking } = useJarvisStore();
   const [input, setInput] = useState('');
   const [autoSpeak, setAutoSpeak] = useState(true);
+  const [pendingDraft, setPendingDraft] = useState<{ to: string; subject: string; body: string } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const { speak, stopSpeaking, ttsSupported } = useVoice();
@@ -35,9 +36,7 @@ export default function Chat() {
     if (last.role === 'assistant' && !last.isStreaming && last.content) {
       speak(last.content);
     }
-  }, [messages, autoSpeak, speak, ttsSupported]);
-
-  const sendMessage = useCallback((text: string) => {
+  }, [messages, autoSpeak, speak, ttsSupported]);  const sendMessage = useCallback((text: string) => {
     if (!text.trim() || isProcessing) return;
 
     const userMsg: ChatMessage = {
@@ -52,6 +51,65 @@ export default function Chat() {
 
     // Stop any ongoing speech
     stopSpeaking();
+
+    // ── Handle email confirmation flow ──
+    if (pendingDraft) {
+      const lower = text.toLowerCase().trim();
+      if (lower === 'yes' || lower === 'send' || lower === 'confirm') {
+        // Send the email
+        const assistantMsg: ChatMessage = {
+          id: `assistant-${Date.now()}`,
+          role: 'assistant',
+          content: '',
+          timestamp: Date.now(),
+          isStreaming: true,
+        };
+        addMessage(assistantMsg);
+
+        if (window.electronAPI) {
+          window.electronAPI.email.confirmSend(pendingDraft).then((result: any) => {
+            updateLastAssistantMessage(result.message || 'Email sent successfully!');
+            setPendingDraft(null);
+            setProcessing(false);
+          });
+        } else {
+          updateLastAssistantMessage('📧 Email sent successfully! (Demo mode — run `npm run electron:dev` to actually send)');
+          setPendingDraft(null);
+          setProcessing(false);
+        }
+        return;
+      }
+
+      if (lower === 'cancel' || lower === 'no' || lower === 'abort') {
+        const assistantMsg: ChatMessage = {
+          id: `assistant-${Date.now()}`,
+          role: 'assistant',
+          content: '',
+          timestamp: Date.now(),
+          isStreaming: true,
+        };
+        addMessage(assistantMsg);
+        updateLastAssistantMessage('❌ Email draft cancelled. What else can I help with?');
+        setPendingDraft(null);
+        setProcessing(false);
+        return;
+      }
+
+      // Edit the draft
+      if (lower.startsWith('edit')) {
+        const assistantMsg: ChatMessage = {
+          id: `assistant-${Date.now()}`,
+          role: 'assistant',
+          content: '',
+          timestamp: Date.now(),
+          isStreaming: true,
+        };
+        addMessage(assistantMsg);
+        updateLastAssistantMessage(`📝 Current draft:\n**To:** ${pendingDraft.to}\n**Subject:** ${pendingDraft.subject}\n**Body:** ${pendingDraft.body}\n\nTell me what to change (e.g., "change subject to Meeting Update" or "change body to..."  ).`);
+        setProcessing(false);
+        return;
+      }
+    }
 
     // Add placeholder for assistant
     const assistantMsg: ChatMessage = {
@@ -80,11 +138,27 @@ export default function Chat() {
       // Smart response (no Ollama needed)
       setTimeout(() => {
         const response = getSmartResponse(text);
+        
+        // Check if response contains email draft ("Ready to send")
+        if (response.includes('Ready to send:') && response.includes('**To:**')) {
+          const toMatch = response.match(/\*\*To:\*\*\s+(.+)/);
+          const subjectMatch = response.match(/\*\*Subject:\*\*\s+(.+)/);
+          const bodyMatch = response.match(/\*\*Body:\*\*\s+(.+)/);
+          
+          if (toMatch && subjectMatch) {
+            setPendingDraft({
+              to: toMatch[1].trim(),
+              subject: subjectMatch[1].trim(),
+              body: bodyMatch ? bodyMatch[1].trim() : '',
+            });
+          }
+        }
+        
         updateLastAssistantMessage(response);
         setProcessing(false);
       }, 300);
     }
-  }, [isProcessing, addMessage, updateLastAssistantMessage, setProcessing, stopSpeaking, speak]);
+  }, [isProcessing, addMessage, updateLastAssistantMessage, setProcessing, stopSpeaking, speak, pendingDraft]);
 
   const handleVoiceTranscript = useCallback((transcript: string) => {
     sendMessage(transcript);
