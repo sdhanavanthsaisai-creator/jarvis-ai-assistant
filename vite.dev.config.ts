@@ -42,6 +42,21 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path: string) => path.replace(/^\/api\/search\/ddg/, '/html'),
       },
+      '/api/ddg': {
+        target: 'https://api.duckduckgo.com',
+        changeOrigin: true,
+        rewrite: (path: string) => path.replace(/^\/api\/ddg/, ''),
+      },
+      '/api/search/google': {
+        target: 'https://www.google.com',
+        changeOrigin: true,
+        rewrite: (path: string) => path.replace(/^\/api\/search\/google/, '/search'),
+      },
+      '/api/ollama': {
+        target: 'http://localhost:11434',
+        changeOrigin: true,
+        rewrite: (path: string) => path.replace(/^\/api\/ollama/, ''),
+      },
       '/api/search/searxng': {
         target: 'https://search.inetol.net',
         changeOrigin: true,

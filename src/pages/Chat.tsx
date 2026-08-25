@@ -5,6 +5,7 @@ import { useJarvisStore, ChatMessage } from '../lib/store';
 import VoiceButton from '../components/VoiceButton';
 import { useVoice } from '../lib/useVoice';
 import { getSmartResponse } from '../lib/smartRouter';
+import { searchWeb } from '../lib/searchFallback';
 
 // ══════════════════════════════════════════════════════
 // CHAT PAGE — FULL-SCREEN CONVERSATION WITH VOICE
@@ -36,7 +37,71 @@ export default function Chat() {
     if (last.role === 'assistant' && !last.isStreaming && last.content) {
       speak(last.content);
     }
-  }, [messages, autoSpeak, speak, ttsSupported]);  const sendMessage = useCallback((text: string) => {
+  }, [messages, autoSpeak, speak, ttsSupported]);
+
+  /** Try Ollama LLM streaming — returns true on success */
+  const tryOllama = useCallback(async (query: string): Promise<boolean> => {
+    try {
+      const ollamaUrl = '/api/ollama';
+      const response = await fetch(`${ollamaUrl}/api/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'mistral:7b',
+          messages: [
+            { role: 'system', content: 'You are JARVIS, a knowledgeable AI assistant built by dhana. You are helpful, concise, and always give direct answers. Answer any question the user asks accurately and thoroughly. You know about sports, technology, science, history, coding, and everything else.' },
+            { role: 'user', content: query },
+          ],
+          stream: true,
+        }),
+      });
+
+      if (!response.ok) return false;
+
+      const reader = response.body?.getReader();
+      if (!reader) return false;
+
+      const decoder = new TextDecoder();
+      let isFirstChunk = true;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        const chunk = decoder.decode(value);
+        const lines = chunk.split('\n').filter(l => l.trim());
+        for (const line of lines) {
+          try {
+            const json = JSON.parse(line);
+            if (json.message?.content) {
+              if (isFirstChunk) {
+                // Replace 'Thinking...' with the first real content, strip chain-of-thought
+                let cleanContent = json.message.content;
+                // Mistral model sometimes prefixes with thinking tags
+                const thinkEnd = cleanContent.indexOf('</think>');
+                if (thinkEnd !== -1) {
+                  cleanContent = cleanContent.substring(thinkEnd + 8).trim();
+                } else {
+                  // Strip 'Thinking...' prefix if present
+                  cleanContent = cleanContent.replace(/^Thinking\.\.\.\s*/i, '');
+                }
+                updateLastAssistantMessage(cleanContent);
+                isFirstChunk = false;
+              } else {
+                updateLastAssistantMessage(
+                  (useJarvisStore.getState().messages.slice(-1)[0]?.content || '') + json.message.content
+                );
+              }
+            }
+          } catch (_) { /* skip non-JSON lines */ }
+        }
+      }
+      return true;
+    } catch (_e) {
+      return false;
+    }
+  }, [updateLastAssistantMessage]);
+
+  const sendMessage = useCallback((text: string) => {
     if (!text.trim() || isProcessing) return;
 
     const userMsg: ChatMessage = {
@@ -52,11 +117,10 @@ export default function Chat() {
     // Stop any ongoing speech
     stopSpeaking();
 
-    // ── Handle email confirmation flow ──
+    // Handle email confirmation flow
     if (pendingDraft) {
       const lower = text.toLowerCase().trim();
       if (lower === 'yes' || lower === 'send' || lower === 'confirm') {
-        // Send the email
         const assistantMsg: ChatMessage = {
           id: `assistant-${Date.now()}`,
           role: 'assistant',
@@ -73,7 +137,7 @@ export default function Chat() {
             setProcessing(false);
           });
         } else {
-          updateLastAssistantMessage('📧 Email sent successfully! (Demo mode — run `npm run electron:dev` to actually send)');
+          updateLastAssistantMessage('Email sent successfully! (Demo mode)');
           setPendingDraft(null);
           setProcessing(false);
         }
@@ -89,13 +153,12 @@ export default function Chat() {
           isStreaming: true,
         };
         addMessage(assistantMsg);
-        updateLastAssistantMessage('❌ Email draft cancelled. What else can I help with?');
+        updateLastAssistantMessage('Email draft cancelled. What else can I help with?');
         setPendingDraft(null);
         setProcessing(false);
         return;
       }
 
-      // Edit the draft
       if (lower.startsWith('edit')) {
         const assistantMsg: ChatMessage = {
           id: `assistant-${Date.now()}`,
@@ -105,7 +168,7 @@ export default function Chat() {
           isStreaming: true,
         };
         addMessage(assistantMsg);
-        updateLastAssistantMessage(`📝 Current draft:\n**To:** ${pendingDraft.to}\n**Subject:** ${pendingDraft.subject}\n**Body:** ${pendingDraft.body}\n\nTell me what to change (e.g., "change subject to Meeting Update" or "change body to..."  ).`);
+        updateLastAssistantMessage('Current draft:\nTo: ' + pendingDraft.to + '\nSubject: ' + pendingDraft.subject + '\nBody: ' + pendingDraft.body + '\n\nTell me what to change.');
         setProcessing(false);
         return;
       }
@@ -135,30 +198,51 @@ export default function Chat() {
         }
       );
     } else {
-      // Smart response (no Ollama needed)
-      setTimeout(() => {
-        const response = getSmartResponse(text);
-        
-        // Check if response contains email draft ("Ready to send")
-        if (response.includes('Ready to send:') && response.includes('**To:**')) {
-          const toMatch = response.match(/\*\*To:\*\*\s+(.+)/);
-          const subjectMatch = response.match(/\*\*Subject:\*\*\s+(.+)/);
-          const bodyMatch = response.match(/\*\*Body:\*\*\s+(.+)/);
-          
-          if (toMatch && subjectMatch) {
-            setPendingDraft({
-              to: toMatch[1].trim(),
-              subject: subjectMatch[1].trim(),
-              body: bodyMatch ? bodyMatch[1].trim() : '',
+      // ── Strategy 1: Smart router (instant, no AI needed) ──
+      const smartResponse = getSmartResponse(text);
+
+      if (smartResponse) {
+        setTimeout(() => {
+          // Check if response contains email draft
+          if (smartResponse.includes('Ready to send:') && smartResponse.includes('**To:**')) {
+            const toMatch = smartResponse.match(/\*\*To:\*\*\s+(.+)/);
+            const subjectMatch = smartResponse.match(/\*\*Subject:\*\*\s+(.+)/);
+            const bodyMatch = smartResponse.match(/\*\*Body:\*\*\s+(.+)/);
+
+            if (toMatch && subjectMatch) {
+              setPendingDraft({
+                to: toMatch[1].trim(),
+                subject: subjectMatch[1].trim(),
+                body: bodyMatch ? bodyMatch[1].trim() : '',
+              });
+            }
+          }
+
+          updateLastAssistantMessage(smartResponse);
+          setProcessing(false);
+        }, 300);
+      } else {
+        // ── Strategy 2: Ollama LLM (smart, local AI) ──
+        updateLastAssistantMessage('Thinking...');
+
+        tryOllama(text).then((success) => {
+          if (success) {
+            setProcessing(false);
+          } else {
+            // ── Strategy 3: Web search fallback ──
+            updateLastAssistantMessage('Searching the web...');
+            searchWeb(text).then((result) => {
+              updateLastAssistantMessage(result);
+              setProcessing(false);
+            }).catch(() => {
+              updateLastAssistantMessage('I could not find an answer. Please try rephrasing or ask me about something else.');
+              setProcessing(false);
             });
           }
-        }
-        
-        updateLastAssistantMessage(response);
-        setProcessing(false);
-      }, 300);
+        });
+      }
     }
-  }, [isProcessing, addMessage, updateLastAssistantMessage, setProcessing, stopSpeaking, speak, pendingDraft]);
+  }, [isProcessing, addMessage, updateLastAssistantMessage, setProcessing, stopSpeaking, speak, pendingDraft, tryOllama]);
 
   const handleVoiceTranscript = useCallback((transcript: string) => {
     sendMessage(transcript);
@@ -173,7 +257,7 @@ export default function Chat() {
 
   return (
     <div className="h-full flex flex-col">
-      {/* ── Chat Header ── */}
+      {/* Chat Header */}
       <div className="flex items-center justify-between px-6 py-4 border-b border-jarvis-border">
         <div className="flex items-center gap-3">
           <div className="w-2 h-2 rounded-full bg-jarvis-cyan shadow-[0_0_8px_rgba(0,212,255,0.5)]" />
@@ -201,7 +285,7 @@ export default function Chat() {
         </div>
       </div>
 
-      {/* ── Messages ── */}
+      {/* Messages */}
       <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
         {messages.length === 0 && (
           <div className="h-full flex items-center justify-center">
@@ -262,7 +346,7 @@ export default function Chat() {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* ── Input Bar ── */}
+      {/* Input Bar */}
       <div className="px-6 py-4 border-t border-jarvis-border">
         <div className="flex items-center gap-3">
           <VoiceButton size="sm" onTranscript={handleVoiceTranscript} />

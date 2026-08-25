@@ -374,7 +374,7 @@ function pickRandom<T>(arr: T[]): T {
 // MAIN ROUTER
 // ══════════════════════════════════════════════════════
 
-export function getSmartResponse(text: string): string {
+export function getSmartResponse(text: string): string | null {
   const lower = text.toLowerCase().trim();
 
   // ══════════════════════════════════════════════════════
@@ -425,13 +425,8 @@ export function getSmartResponse(text: string): string {
   // ── 3. WEB SEARCH ROUTING (catch-all, checked last) ──
   const SEARCH_KW = /\b(search for|google|look up|find me|what is the latest|what'?s happening with|tell me about news|latest news on|recent news about|what are the latest)\b/i;
   if (SEARCH_KW.test(lower)) {
-    const query = lower
-      .replace(/.*(?:search for|google|look up|find me|what is the latest|what'?s happening with|tell me about news|latest news on|recent news about|what are the latest)\s*/i, '')
-      .trim();
-    if (query) {
-      return `🔍 **Searching for "${query}"...**\n\nThis feature requires the JARVIS desktop app. Run \`npm run electron:dev\` for live web search and summaries.`;
-    }
-    return '🔍 What would you like me to search for? Try:\n• "Search for latest AI news"\n• "Look up React 19 features"\n• "What is happening in tech today"';
+    // Return null to let Ollama handle search queries
+    return null;
   }
 
   // ── Existing patterns continue below ──
@@ -665,29 +660,15 @@ and much more — just ask!`;
     const person = lower.replace(/^who (is|are|was|were)\s+/, '');
     const personResult = lookupKnowledge(`who is ${person}`);
     if (personResult) return personResult;
-    return `I don't have specific information about "${text.replace(/^who (is|are|was|were)\s+/i, '')}" in my knowledge base yet, sir. Could you try rephrasing or ask me something else?`;
+    return null; // Let Ollama handle unknown people
   }
 
   // ── Fuzzy knowledge matching (70% word overlap) ──
   const fuzzyResult = fuzzyLookupKnowledge(lower);
   if (fuzzyResult) return fuzzyResult;
 
-  // ── Generic but helpful fallback ──
-  return `I received your message, sir: "${text}"
-
-I can help you with:
-• **Weather** — "What's the weather in Chennai?"
-• **Stocks** — "How's the Nifty doing?" / "What's the price of Reliance?"
-• **News** — "What's in the news?"
-• **Habits** — "How are my habits?"
-• **Time/Date** — "What time is it?"
-• **Math** — "What's 245 * 38?"
-• **Conversions** — "Convert 100 USD to INR"
-• **Knowledge** — "Tell me about Python" / "What is blockchain?" / "Explain quantum computing"
-• **Workflows** — "List my workflows" / "Show n8n automations"
-• **Fun** — "Tell me a joke" / "Give me a quote"
-
-I can discuss programming, science, history, business, technology, and hundreds of other topics. Just ask!`;
+  // ── No match — return null so Chat.tsx can try Ollama ──
+  return null;
 }
 
 // ══════════════════════════════════════════════════════
@@ -730,7 +711,7 @@ function fuzzyLookupKnowledge(query: string): string | null {
   return null;
 }
 
-function generateTopicResponse(topic: string): string {
+function generateTopicResponse(topic: string): string | null {
   const t = topic.toLowerCase().trim();
 
   // Check if it matches any knowledge key with looser matching
@@ -744,17 +725,5 @@ function generateTopicResponse(topic: string): string {
     }
   }
 
-  return `That's an interesting topic, sir. I have knowledge about "${topic}" in my database but it seems I need to expand my coverage there. Here are some topics I can discuss in detail:
-
-**Programming**: Python, JavaScript, TypeScript, C, C++, Java, Rust, Go, Ruby, PHP, Swift, Kotlin, and more.
-
-**Technology**: AI, machine learning, Docker, Kubernetes, React, Vue, Angular, Next.js, databases, cloud computing.
-
-**Science**: Physics, chemistry, biology, quantum computing, astronomy, evolution.
-
-**Business**: SEO, CRM, SaaS, startups, e-commerce, digital marketing, investing.
-
-**World**: Countries, companies (Google, Apple, Tesla, etc.), famous people.
-
-Try asking "Tell me about Python", "What is blockchain?", or "Explain quantum computing" — I can give detailed answers on hundreds of topics!`;
+  return null;
 }
