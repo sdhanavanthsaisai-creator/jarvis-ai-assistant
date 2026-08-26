@@ -1,9 +1,10 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
+import { searchPlugin } from './vite-search-plugin';
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), searchPlugin()],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
@@ -37,30 +38,10 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: () => '/',
       },
-      '/api/search/ddg': {
-        target: 'https://html.duckduckgo.com',
-        changeOrigin: true,
-        rewrite: (path: string) => path.replace(/^\/api\/search\/ddg/, '/html'),
-      },
-      '/api/ddg': {
-        target: 'https://api.duckduckgo.com',
-        changeOrigin: true,
-        rewrite: (path: string) => path.replace(/^\/api\/ddg/, ''),
-      },
-      '/api/search/google': {
-        target: 'https://www.google.com',
-        changeOrigin: true,
-        rewrite: (path: string) => path.replace(/^\/api\/search\/google/, '/search'),
-      },
       '/api/ollama': {
         target: 'http://localhost:11434',
         changeOrigin: true,
         rewrite: (path: string) => path.replace(/^\/api\/ollama/, ''),
-      },
-      '/api/search/searxng': {
-        target: 'https://search.inetol.net',
-        changeOrigin: true,
-        rewrite: (path: string) => path.replace(/^\/api\/search\/searxng/, ''),
       },
     },
   },
